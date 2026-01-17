@@ -1,18 +1,15 @@
-# NS-CSPGASP Speaker Rebuild  
-**Pi Zero 2 W + MAX98357A I2S Amp**
+# Insignia NS-CSPGASP Rebuild Plan
+**Pi Zero 2 W + MAX98357A + Condor Board Interface**
 
 ## Objective
 
-Replace the obsolete and unreliable Condor (Google Assistant) board with a fully controllable, future-proof system that:
+Replace the "Condor" logic board (Google Assistant unit) in the Insignia Voice Smart Speaker with a fully controllable system that:
 
-- Retains similar loudness to the original speaker
-- Supports:
-  - Spotify playback
-  - Voice control
-  - Reliable timers and alarms
-- Integrates with Google Home via Home Assistant (no official Assistant dependency)
-- Reuses the existing enclosure and speaker
-- Requires no reverse-engineering of the Condor PCB
+-   **Retains Functionality:** Uses the original Speaker, Enclosure, and LED Clock Display (future).
+-   **Audio Quality:** Matches original loudness via I2S Amp.
+-   **Smart Features:** Spotify Connect, Voice Assistant (Local), Home Assistant integration.
+-   **No Cloud Lock-in:** Removes dependence on Google's discontinued 3rd party support.
+-   **Hardware Reuse:** Reuses the "Condor Touch Board" (Top UI) and "Condor Main Board" chassis mount points.
 
 ---
 
@@ -20,83 +17,84 @@ Replace the obsolete and unreliable Condor (Google Assistant) board with a fully
 
 ```mermaid
 flowchart TD
-    PWR[5V Power Input] --> SPLIT[5V Distribution]
+    PWR[5V DC Input] --> SPLIT[Power Distribution]
 
     SPLIT --> PI[Raspberry Pi Zero 2 W]
     SPLIT --> AMP[MAX98357A I2S Class-D Amp]
+    SPLIT --> DISP_PWR[Top Board Power 5V]
 
     PI -->|I2S Audio| AMP
-    AMP -->|Speaker Output| SPK[Original Internal Speaker]
+    AMP -->|Speaker Output| SPK[Original Insignia Speaker]
 
     MIC[USB Microphone] --> PI
-    BTN[Buttons / Touch] --> PI
-    LED[Status LEDs] --> PI
+    
+    subgraph "Top Assembly (Pass-through)"
+        DISP[7-Segment Clock Display]
+        TOUCH[Capacitive Buttons]
+        MIC_ARR[Original Microphones]
+    end
+
+    PI <-->|I2C / GPIO via FPC Breakout| DISP
+    PI <-->|I2C / GPIO via FPC Breakout| TOUCH
+    PI <-->|I2S / PDM via FPC Breakout| MIC_ARR
 
     PI -->|Wi-Fi| NET[Home Network]
     NET --> HA[Home Assistant]
-    HA --> GH[Google Home Routines]
 ```
 
 ---
 
 ## Design Rationale
 
-### Why the Condor board is fully removed
-- Speaker leads connect directly to Condor
-- Amp, DAC, DSP, and SoC are tightly integrated
-- No clean audio input points
-- Secure boot prevents firmware replacement
+### Why the Condor Main Board is removed
+-   **Proprietary:** The main "Condor" board is locked down with secure boot.
+-   **Audio Quality:** The original DSP and Amp are integrated; driving the speaker directly with a new Amp is easier than reverse-engineering the Condor audio path.
 
-Replacing it entirely is faster, cheaper, and more reliable.
-
----
+### Why the Condor Top Board (Touch/Display) is kept
+-   **Integration:** It contains the clock display and custom mechanical buttons which fit the case perfectly.
+-   **Interface:** It connects via a ribbon cable (FPC), which can be adapted to the Pi.
 
 ### Why MAX98357A
-- Combines DAC + Class-D amp in one chip
-- Delivers ~3 W into 4 Ω @ 5 V
-- Matches original practical loudness
-- I2S input avoids analog noise
-- Tiny footprint, low heat, inexpensive
+-   **Power:** Sufficient for the internal 4Ω speaker (likely ~3W).
+### Why Raspberry Pi Zero 2 W (vs. ESP32)?
+You asked about space and the ESP32. While the ESP32 is smaller and cheaper, the **Pi Zero 2 W is the correct choice** for this specific project because:
 
----
+1.  **Space is NOT an issue:** The "Condor Main Board" you are removing is massive (approx. 100mm x 60mm). The Pi Zero 2 W (65mm x 30mm) will float in that empty space with plenty of room for the HAT and cables.
+2.  **Spotify Connect:** On Linux (Pi), `spotifyd` is a rock-solid, official-grade client. On ESP32, Spotify support is "hacky," relying on reverse-engineered libraries that often break or lack "Connect" features.
+3.  **Voice Assistant:** The Pi has the CPU power to run **local wake-word engines** (like Porcupine or openWakeWord) and high-quality audio pipelines (Wyoming Satellite). The ESP32-S3 forces you into a much more constrained "micro" voice ecosystem.
+4.  **Display Driver:** Reverse-engineering the LED clock protocol is significantly easier with Python scripts on Linux than compiling C++ firmware for every test on an ESP32.
 
-## Bill of Materials
+**Verdict:** The Pi Zero 2 W is the smallest device that still acts like a "real computer," which is required for a reliable Smart Speaker experience.
 
-### Core Compute
-| Item | Notes | Est. Cost |
-|----|----|----|
-| Raspberry Pi Zero 2 W | Wi-Fi + CPU | $15 |
-| MicroSD card (16–32 GB) | OS + cache | $6 |
+## Bill of Materials (BOM) & Sourcing Guide
 
-### Audio
-| Item | Notes | Est. Cost |
-|----|----|----|
-| MAX98357A I2S amp breakout | DAC + amp | $4 |
-| Existing internal speaker | Likely 4 Ω | $0 |
+| Component | Description | Search / SKU Examples | Est. Cost |
+| :--- | :--- | :--- | :--- |
+| **Controller** | **Raspberry Pi Zero 2 W** | • [Adafruit 5291](https://www.adafruit.com/product/5291)<br>• [Pi Hut Zero 2](https://thepihut.com/products/raspberry-pi-zero-2-w) | $15.00 |
+| **Interface HAT** | **Raspberry Pi Zero Proto HAT** (Shim style) | • **Adafruit 3203** (Perma-Proto HAT)<br>• **Pimoroni** Zero LiPo Shim (generic proto)<br>• Search: *"Pi Zero Proto HAT"* | $4-6 |
+| **Ribbon Breakout** | **20-Pin 0.5mm FPC to DIP Adapter** | • **Adafruit 1492** (Perfect fit)<br>• **Amazon:** *"20 pin 0.5mm FPC breakout board"*<br>• **Uxcell** a14061600ux0766 | $8-10 |
+| **Audio Amp** | **MAX98357A I2S Class-D Amp** | • **Adafruit 3006** (Recommended)<br>• **Amazon:** *"MAX98357A Breakout"* | $6.00 |
+| **Power Cable** | **JST-PH 2.0mm Cable** (Internal Wiring) | • **Adafruit 261** (JST-PH 2-pin)<br>• **Pololu** JST PH leads<br>(For splicing the internal speaker) | $2.00 |
+| **Misc** | Wire, Solder, Double-sided Tape | 24-26 AWG silicon wire | - |
 
-### Voice Input
-| Item | Notes | Est. Cost |
-|----|----|----|
-| USB microphone (2-mic preferred) | Echo handling | $10–15 |
-
-### Power & Wiring
-| Item | Notes | Est. Cost |
-|----|----|----|
-| JST / Dupont wires | Internal wiring | $5 |
-| Buck converter | If input >5 V | $2 (optional) |
-
-Typical total: $35–45
+> [!NOTE]
+> **Breakout Board Critical Spec:** Ensure the FPC side is **0.5mm pitch** and has **20 pins**. The DIP side will be standard 2.54mm (0.1") pitch to fit the Proto HAT.
 
 ---
 
 ## Electrical Wiring
 
-### Power
+> [!WARNING]
+> **VERIFY VOLTAGE:** Do not assume the red/black power wires are 5V. Some models use 12V. Measure before connecting Pi!
+
+### Power Distribution
 ```
-5V Input
- ├── Pi 5V
- └── MAX98357A VIN
-Grounds MUST be common
+DC Input (Verify Voltage!)
+ ├── Buck Converter (If 12V) -> 5V
+ └── 5V Rail
+      ├── Pi Zero 2 W (5V Pin)
+      ├── MAX98357A (VIN)
+      └── Top Board (Check Pinout for 5V/3V3 reqs)
 ```
 
 ### I2S Audio (Pi → MAX98357A)
@@ -107,6 +105,10 @@ Grounds MUST be common
 | GPIO21 | DATA | DIN |
 | 5V | Power | VIN |
 | GND | Ground | GND |
+
+### Top Board Interface (Requires FPC Breakout)
+*Pinout TBD based on user verification of FPC cable.*
+*Likely I2C for Display/Touch controller.*
 
 ### Speaker Output
 ```
@@ -120,11 +122,12 @@ Do NOT connect speaker leads to ground.
 
 ## Physical Assembly Steps
 
-1. Remove Condor board completely
-2. Mount Pi Zero 2 W in enclosure
-3. Mount MAX98357A close to speaker
-4. Split 5 V power cleanly
-5. Keep speaker leads short and twisted
+1.  **Teardown:** Open case, remove "Condor Main Board".
+2.  **Top Board:** Leave "Condor Touch Board" in place.
+3.  **Interface:** Connect FPC Breakout to the Touch Board's ribbon cable.
+4.  **Audio:** Mount MAX98357A and connect to internal speaker wires.
+5.  **Compute:** Mount Pi Zero 2 W (thermal paste recommended if enclosed).
+6.  **Power:** Tap into the DC Input jack wires.
 
 ---
 
@@ -148,6 +151,36 @@ dtoverlay=hifiberry-dac
 - STT: Whisper.cpp
 - TTS: Piper
 
+### Logical Command Flow
+How a voice command travels through the system: "Hey Victor, set volume to 70%".
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Mic as Mic Array (FPC)
+    participant Pi as Pi Zero 2 (Wyoming)
+    participant HA as Home Assistant
+    participant Audio as ALSA / DAC
+    participant Disp as LED Display
+
+    User->>Mic: "Hey Victor, set volume to 70%"
+    Mic->>Pi: I2S Audio Stream
+    loop Local Processing
+        Pi->>Pi: Wake Word Detect (Porcupine)
+        Pi->>Pi: Speech-to-Text (Whisper)
+    end
+    Pi->>HA: Intent: {set_volume, level=70}
+    HA->>Pi: Command: volume_set(70)
+    
+    par Execution
+        Pi->>Audio: Adjust Hardware Mixer (MAX98357A)
+        Audio->>User: *Volume Changed*
+    and Feedback
+        Pi->>Disp: Update "70" (I2C Command)
+        Disp->>User: *Visual Confirmation*
+    end
+```
+
 ### Automation
 - Home Assistant
 - REST / webhook triggers
@@ -156,6 +189,7 @@ dtoverlay=hifiberry-dac
 ---
 
 ## Timers & Alarms
+- **Display Driver (In Progress):** Will require reverse engineering the LED commands via the FPC interface.
 - Local scheduler (Python or systemd)
 - Survives reboots
 - No cloud dependency
@@ -175,6 +209,7 @@ dtoverlay=hifiberry-dac
 ---
 
 ## Known Limits
+- **Display Driver:** Requires development. Currently, the display will be off until the protocol is reversed.
 - No official Google Assistant registration
 - Google Home via Home Assistant bridge
 - Simpler DSP than Google original
@@ -182,8 +217,6 @@ dtoverlay=hifiberry-dac
 ---
 
 ## Optional Enhancements
-- LED status ring
-- Capacitive touch controls
+- LED status ring (if separate from Top Board)
 - Custom wake-word sounds
 - 3D-printed mounting bracket
-- Higher-sensitivity speaker
