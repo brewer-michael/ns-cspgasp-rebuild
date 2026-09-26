@@ -748,6 +748,7 @@ async def test_run_pipeline_unsubscribes_when_stopped_early(
     [run] = fake_ha.runs
     await wait_for(lambda: fake_ha.unsubscribed == [run.id])
     assert fake_ha.binary[-1] == bytes([run.handler_id])  # the audio stream was ended first
+    assert ha._queues == {}  # nothing left waiting for a reply
 
 
 async def test_run_pipeline_needs_binary_handler_for_audio(

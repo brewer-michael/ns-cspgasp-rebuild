@@ -47,7 +47,7 @@ class HomeAssistant:
         self.url = url.rstrip("/")
         self.token = token
         self.session = session
-        self.ssl: bool | None = None if verify_ssl else False
+        self.ssl = verify_ssl
         self.timeout = timeout
         self.version: str | None = None
         self._ws: aiohttp.ClientWebSocketResponse | None = None
@@ -191,9 +191,13 @@ class HomeAssistant:
             for queue in self._queues.values():
                 queue.put_nowait(_CLOSED)
 
-    def _register(self) -> tuple[int, asyncio.Queue[Any]]:
+    def _new_id(self) -> int:
         msg_id = self._next_id
         self._next_id += 1
+        return msg_id
+
+    def _register(self) -> tuple[int, asyncio.Queue[Any]]:
+        msg_id = self._new_id()
         queue: asyncio.Queue[Any] = asyncio.Queue()
         self._queues[msg_id] = queue
         return msg_id, queue
@@ -288,11 +292,11 @@ class HomeAssistant:
                 await streamer.finish()
             self._queues.pop(msg_id, None)
             if not finished and self.connected:
-                # Cancel the pipeline run if we stopped early.
+                # Cancel the pipeline run if we stopped early; the reply isn't needed.
                 with contextlib.suppress(Exception):
                     await ws.send_json(
                         {
-                            "id": self._register()[0],
+                            "id": self._new_id(),
                             "type": "unsubscribe_events",
                             "subscription": msg_id,
                         }
