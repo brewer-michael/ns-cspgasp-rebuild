@@ -114,8 +114,8 @@ PETG at 100% infill. The digits will look softer.
 
 ## Assembly
 
-Everything below has been checked in the model for clearance, including the path
-each part takes into place.
+The clearances between all the parts have been checked in the model, and so have
+the paths the deck and the display take on their way in.
 
 1. **Inserts.** Press the six M3 inserts into the pillars beside the back opening
    (soldering iron at about 220 °C).
