@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open-speaker"
+version = "2.0.0"
+description = "Open-hardware Raspberry Pi smart speaker and alarm clock for Home Assistant, with speech and AI models on your local network"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "dev-brewery" }]
+requires-python = ">=3.11"
+keywords = ["home-assistant", "raspberry-pi", "voice-assistant", "wyoming", "smart-speaker", "alarm-clock"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Home Automation",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+    "aiohttp>=3.9",
+    "numpy>=1.24",
+    "PyYAML>=6.0",
+    "wyoming>=1.7,<2",               # 1.7 added streaming transcripts
+]
+
+[project.optional-dependencies]
+# Everything the reference build uses on a Raspberry Pi Zero 2 W.
+# On Raspberry Pi OS the GPIO/SPI/I2C/imaging libraries are also available from apt
+# (python3-gpiozero python3-lgpio python3-spidev python3-smbus2 python3-pil); the
+# installer uses those via a --system-site-packages virtualenv.
+pi = [
+    "pymicro-wakeword>=2.0",
+    "pymicro-vad>=1.0",
+    "gpiozero>=2.0",
+    "smbus2>=0.4",
+    "pillow>=9.4",
+]
+microwakeword = ["pymicro-wakeword>=2.0"]
+openwakeword = ["pyopen-wakeword>=1.0"]
+microvad = ["pymicro-vad>=1.0"]
+hardware = ["gpiozero>=2.0", "smbus2>=0.4", "pillow>=9.4"]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "gpiozero>=2.0",
+    "pillow>=9.4",
+]
+
+[project.scripts]
+open-speaker = "open_speaker.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/brewer-michael/ns-cspgasp-rebuild"
+
+[tool.setuptools.packages.find]
+include = ["open_speaker*"]
+
+[tool.setuptools.package-data]
+open_speaker = ["py.typed", "data/*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF012"]

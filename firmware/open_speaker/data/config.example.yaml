@@ -1,0 +1,168 @@
+# Open Speaker configuration
+#
+# Copy to /etc/open-speaker/config.yaml (the installer does this) and edit.
+# Check it with:   open-speaker check-config
+# Test it with:    open-speaker doctor
+#
+# Secrets can come from the environment: ${HA_TOKEN} is read from
+# /etc/open-speaker/secrets.env by the systemd service.
+#
+# Every option below shows its default unless marked "example".
+
+name: Open Speaker
+language: en
+
+# --------------------------------------------------------------------------
+# Voice pipeline
+#
+# A Raspberry Pi Zero 2 W only runs the wake word and streams your voice; speech
+# recognition, the conversation agent and speech synthesis run elsewhere:
+#
+#   homeassistant  Home Assistant runs them in an Assist pipeline. Pick the models
+#                  (e.g. Whisper, Piper and an Ollama agent on your network) under
+#                  Settings > Voice assistants.
+#   local          The speaker calls your inference servers directly (see stt,
+#                  agents and tts below); Home Assistant is optional.
+pipeline:
+  mode: homeassistant
+  follow_up: true        # keep listening when the assistant asks a question
+  local_intents: true    # handle timers, alarms, stop/snooze and volume on the speaker
+
+homeassistant:
+  url: http://homeassistant.local:8123      # example
+  token: ${HA_TOKEN}                        # long-lived access token (profile > security)
+  pipeline: null         # Assist pipeline id; null = your preferred pipeline
+  verify_ssl: true
+
+# --------------------------------------------------------------------------
+# Wake word
+#
+#   microwakeword  on the speaker; tiny, best for a Pi Zero 2 W (okay_nabu,
+#                  hey_jarvis, hey_mycroft, alexa, or a path to a model .json)
+#   openwakeword   on the speaker; more models, several times the CPU
+#   wyoming        a Wyoming wake word server (e.g. wyoming-openwakeword) on your network
+#   none           the action button only
+wake:
+  engine: microwakeword
+  model: okay_nabu
+  # engine: wyoming                       # example
+  # uri: tcp://192.168.1.10:10400         # example
+  # names: [ok_nabu]                      # example
+
+# --------------------------------------------------------------------------
+# Local pipeline servers (used when pipeline.mode is "local")
+#
+# Speech-to-text: a Wyoming server (wyoming-faster-whisper, wyoming-speech-to-phrase,
+# wyoming-vosk) or any OpenAI-compatible /v1/audio/transcriptions server (speaches,
+# LocalAI, vLLM). Nothing is transcribed on the speaker itself.
+stt:
+  engine: wyoming
+  uri: tcp://192.168.1.10:10300           # example
+  # engine: openai                        # example
+  # url: http://192.168.1.10:8000/v1      # example
+  # model: Systran/faster-distil-whisper-small.en
+
+# Conversation agents are tried in order until one understands the request.
+agents:
+  - engine: homeassistant                 # home control; needs the homeassistant section
+    agent_id: null                        # e.g. conversation.ollama; null = default agent
+  # - engine: openai                      # example: general questions via a local LLM
+  #   url: http://192.168.1.10:11434/v1   # Ollama; also llama.cpp, vLLM, LocalAI, LM Studio
+  #   model: llama3.2
+  #   system_prompt: null
+  #   max_tokens: 300
+
+# Text-to-speech: a Wyoming server (wyoming-piper) or any OpenAI-compatible
+# /v1/audio/speech server (speaches, Kokoro-FastAPI, openedai-speech, LocalAI).
+tts:
+  engine: wyoming
+  uri: tcp://192.168.1.10:10200           # example
+  voice: null                             # e.g. en_US-lessac-medium
+  # engine: openai                        # example
+  # url: http://192.168.1.10:8000/v1      # example
+  # model: speaches-ai/Kokoro-82M-v1.0-ONNX
+  # voice: af_heart
+
+# End-of-speech detection for the local pipeline (Home Assistant does its own).
+vad:
+  engine: energy          # energy (no dependencies) or microvad (small neural VAD)
+  speech_start_timeout: 5.0
+  silence_seconds: 0.8
+  max_seconds: 15.0
+
+# --------------------------------------------------------------------------
+# Audio (see hardware/schematics/gpio_pinout.md). The installer writes
+# /etc/asound.conf with a "mics" capture device and a "Master" volume control.
+audio:
+  initial_volume: 50
+  volume_step: 5
+  input:
+    device: mics
+    channels: 2           # two INMP441 mics: left (L/R to GND) and right (L/R to 3.3 V)
+    channel: mix          # mix, 0 (left mic) or 1 (right mic)
+    gain_db: 0.0
+  output:
+    device: default
+    volume_control: Master
+    decoder: "mpg123 -q -s -m -r {rate} -"   # Home Assistant speech is MP3
+    duck_control: null    # e.g. Music: lowered while the assistant talks
+    sound_volume: 0.6     # beeps and alarms relative to speech
+
+# --------------------------------------------------------------------------
+# Timers and alarms live on the speaker and survive restarts.
+timers:
+  enabled: true
+  ring_timeout: 120       # seconds before an unattended alarm goes quiet
+  snooze_minutes: 9
+
+# --------------------------------------------------------------------------
+# Front display: the time and temperature, like the original. Volume and other
+# values swap into the temperature slot for a moment.
+display:
+  type: oled              # oled, tm1637 or none
+  clock_24h: false
+  night_start: "22:00"    # dim the display and LEDs overnight
+  night_end: "07:00"
+  oled:
+    driver: sh1106        # sh1106 (1.3"), ssd1306 (0.96"), ssd1309 (2.42")
+    address: 0x3C
+    contrast: 180
+    night_contrast: 8
+    pixel_shift: true     # limits OLED burn-in
+  tm1637:
+    clk_pin: 23
+    dio_pin: 24
+    brightness: 3
+  temperature:
+    entity: null          # e.g. weather.forecast_home or sensor.outdoor_temperature
+
+status_leds:
+  type: ws2812            # ws2812 (on SPI MOSI, GPIO10) or none
+  count: 3
+  brightness: 0.3
+
+volume_led:
+  pin: 12                 # null if not fitted
+
+buttons:                  # BCM GPIO numbers, wired to GND; null to disable
+  volume_up: 17
+  volume_down: 27
+  mute: 22
+  action: 5
+  mute_function: microphone   # microphone (privacy) or speaker
+
+sounds:                   # builtin:<name>, a WAV file path, or null
+  wake: builtin:wake
+  done: builtin:done
+  error: builtin:error
+  alarm: builtin:alarm
+  timer: builtin:timer
+  volume: builtin:volume
+
+# --------------------------------------------------------------------------
+# HTTP API for Home Assistant automations (announcements, timers, alarms, volume).
+api:
+  enabled: true
+  host: 0.0.0.0
+  port: 10800
+  token: null             # set one (e.g. ${API_TOKEN}) if your network is shared
