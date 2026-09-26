@@ -141,7 +141,9 @@ kitchen lights", "is the front door locked?", "how far away is the moon?".
 
 **Display.** It always shows the time and the temperature. The volume, "mic off"
 or a timer's countdown take the temperature's place for a moment. "AL" means an
-alarm is set. It dims from 22:00 to 07:00.
+alarm is set. "net" in place of the temperature means Home Assistant or your
+voice servers can't be reached; timers and alarms still work. It dims from 22:00
+to 07:00.
 
 ![Clock face examples](images/display.png)
 
@@ -161,4 +163,5 @@ Pulsing orange: alarm or timer. Dim red: microphone muted. Red: error.
 | OLED blank | `i2cdetect -y 1` shows 3c or 3d? Set `display.oled.address`; the 0.96" type needs `driver: ssd1306` |
 | LEDs flicker or show wrong colours | `core_freq=250` in config.txt; the diode or level shifter from the wiring guide |
 | "Authentication failed" | The token in `/etc/open-speaker/secrets.env`, then `sudo systemctl restart open-speaker` |
+| "net" on the display | `sudo open-speaker doctor` shows which server can't be reached |
 | Slow answers | See "Making it quick" in [LOCAL_AI.md](LOCAL_AI.md#making-it-quick) |

@@ -314,6 +314,8 @@ class Speaker:
             secondary = "End"
         elif timers:
             secondary = format_countdown(self.scheduler.remaining(timers[0]))  # type: ignore[union-attr]
+        elif not self.connected:
+            secondary = "net"  # Home Assistant or the voice servers can't be reached
         return DisplayState(
             now=datetime.now(),
             clock_24h=self.config.display.clock_24h,
@@ -562,6 +564,10 @@ class Speaker:
             return say(f"Alarm set for {self._when(alarm)}.")
 
         if isinstance(intent, CancelAlarm):
+            ringing = any(r.kind == "alarm" for r in self.ringing) and self.stop_ringing()
+            if ringing and intent.hour is None and not intent.all:
+                # "turn off my alarm" while it rings: silence it, keep its repeats
+                return Answer(Reply(""), sound="done")
             if not scheduler.alarms():
                 return say("You don't have any alarms.")
             cancelled = scheduler.cancel_alarms(

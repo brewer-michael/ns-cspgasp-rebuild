@@ -39,8 +39,9 @@ open-speaker [--config FILE] [--debug] COMMAND
 
 The configuration file is `/etc/open-speaker/config.yaml`. Every option is
 explained in [`open_speaker/data/config.example.yaml`](open_speaker/data/config.example.yaml).
-Values like `${HA_TOKEN}` come from the environment, which the service loads from
-`/etc/open-speaker/secrets.env`.
+Values like `${HA_TOKEN}` come from the environment. The service gets them from
+`/etc/open-speaker/secrets.env`, and the commands read the `secrets.env` next to
+the configuration file themselves.
 
 ## Code map
 

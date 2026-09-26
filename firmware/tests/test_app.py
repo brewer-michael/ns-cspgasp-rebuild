@@ -902,6 +902,28 @@ async def test_voice_stop_silences_an_alarm_for_good(rig) -> None:
     assert r.scheduler.alarms() == []
 
 
+async def test_turning_off_a_ringing_alarm_keeps_its_repeats(rig) -> None:
+    r = await rig(["turn off my alarm"])
+    alarm = r.scheduler.add_alarm(6, 0, WEEKDAYS)
+    r.clock.now = alarm.next_at
+    await r.scheduler.check()
+    assert r.speaker.status()["ringing"] == ["alarm"]
+    await r.converse()
+    assert r.speaker.ringing == []
+    assert r.earcons()[-1] == "done"
+    assert [a.id for a in r.scheduler.alarms()] == [alarm.id]  # still set for the next weekday
+
+
+async def test_cancelling_a_ringing_alarm_by_its_time_removes_it(rig) -> None:
+    r = await rig(["cancel my 6 am alarm"])
+    alarm = r.scheduler.add_alarm(6, 0, WEEKDAYS)
+    r.clock.now = alarm.next_at
+    await r.scheduler.check()
+    await r.converse()
+    assert r.speaker.ringing == []
+    assert r.scheduler.alarms() == []
+
+
 async def test_snooze_does_not_apply_to_timers(rig) -> None:
     r = await rig(["snooze"])
     await ring(r)
@@ -1200,6 +1222,18 @@ async def test_display_counts_down_the_next_timer(rig) -> None:
     assert r.speaker.display_state().secondary == "Vol 55"  # a swap wins
     r.scheduler.cancel_timers(all=True)
     assert r.speaker.display_state().secondary == "Vol 55"
+
+
+async def test_display_shows_net_while_the_servers_are_unreachable(rig) -> None:
+    r = await rig()
+    r.speaker.temperature = "21°C"
+    r.speaker.connected = False
+    assert r.speaker.display_state().secondary == "net"
+    r.scheduler.add_timer(125)
+    assert r.speaker.display_state().secondary == "2:05"  # a running timer comes first
+    r.scheduler.cancel_timers(all=True)
+    r.speaker.connected = True
+    assert r.speaker.display_state().secondary == "21°C"
 
 
 async def test_display_while_ringing(rig) -> None:

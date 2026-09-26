@@ -7,6 +7,7 @@ import asyncio
 import contextlib
 import logging
 import math
+import os
 import signal
 import sys
 import time
@@ -29,6 +30,26 @@ def _setup_logging(level: str) -> None:
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
         datefmt="%H:%M:%S",
     )
+
+
+def load_secrets(path: Path) -> None:
+    """Read NAME=value lines from the secrets file next to the configuration.
+
+    The service gets these from systemd; this lets ``sudo open-speaker doctor``
+    and the other commands see them too. Values already in the environment win.
+    """
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return
+    for line in lines:
+        name, sep, value = line.strip().partition("=")
+        name, value = name.strip(), value.strip()
+        if not sep or not name or name.startswith("#"):
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        os.environ.setdefault(name, value)
 
 
 def _load(args: argparse.Namespace) -> Config:
@@ -225,6 +246,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
+    load_secrets(Path(args.config).with_name("secrets.env"))
     func = getattr(args, "func", cmd_run)
     func(args)
 

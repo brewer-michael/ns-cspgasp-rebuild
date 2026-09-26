@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.server
 import json
+import os
 import shlex
 import struct
 import subprocess
@@ -192,6 +193,35 @@ def test_check_config_reads_secrets_from_the_environment(tmp_path, capsys, monke
     code, out, _ = run(capsys, "-c", str(path), "check-config")
     assert code == 0
     assert yaml.safe_load(out)["homeassistant"]["token"] == "***"
+
+
+def test_secrets_file_next_to_the_config_is_read(tmp_path, capsys, monkeypatch) -> None:
+    path = write_config(
+        tmp_path,
+        "homeassistant:\n  url: http://homeassistant.local:8123\n  token: ${OS_TEST_TOKEN}\n",
+    )
+    (tmp_path / "secrets.env").write_text(
+        "# Secrets\n\nOS_TEST_TOKEN='from-the-file'\nOS_TEST_EMPTY=\nnot a setting\n"
+    )
+    monkeypatch.delenv("OS_TEST_TOKEN", raising=False)
+    monkeypatch.delenv("OS_TEST_EMPTY", raising=False)
+    try:
+        code, out, _ = run(capsys, "-c", str(path), "check-config")
+        assert code == 0
+        assert yaml.safe_load(out)["homeassistant"]["token"] == "***"
+        assert (os.environ["OS_TEST_TOKEN"], os.environ["OS_TEST_EMPTY"]) == ("from-the-file", "")
+    finally:
+        os.environ.pop("OS_TEST_TOKEN", None)
+        os.environ.pop("OS_TEST_EMPTY", None)
+
+
+def test_environment_wins_over_the_secrets_file(tmp_path, capsys, monkeypatch) -> None:
+    path = write_config(tmp_path, MINIMAL)
+    (tmp_path / "secrets.env").write_text("OS_TEST_TOKEN=from-the-file\n")
+    monkeypatch.setenv("OS_TEST_TOKEN", "from-the-environment")
+    code, _, _ = run(capsys, "-c", str(path), "check-config")
+    assert code == 0
+    assert os.environ["OS_TEST_TOKEN"] == "from-the-environment"
 
 
 @pytest.mark.parametrize(
