@@ -5,6 +5,11 @@ on 26 September 2026, without tax or shipping. A plain price is the store's list
 price that day. **≈** marks an estimate where the listed price couldn't be
 confirmed: check it in the store.
 
+To shop, open [`shopping-list.html`](shopping-list.html) from your copy of the
+repository in a browser. It has every part with its store link and searches at
+other stores to compare prices. It also works out what to buy for any number of
+speakers and lets you tick parts off as you buy them.
+
 | | Per speaker | First build |
 |---|--:|--:|
 | [Electronics](#electronics) | ≈ $69.64 | ≈ $139.57 |

@@ -27,6 +27,13 @@ jobs:
       - run: ruff format --check .
       - run: pytest -q
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # docs/shopping-list.html must list the same parts, links and prices as docs/BOM.md
+      - run: python3 scripts/check_bom.py
+
   enclosure:
     runs-on: ubuntu-latest
     steps:

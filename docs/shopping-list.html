@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Open Speaker Parts</title>
+<style>
+:root {
+  --bg: #f2f4f7;
+  --surface: #ffffff;
+  --ink: #161a21;
+  --muted: #586273;
+  --faint: #8a94a6;
+  --rule: #e1e5ec;
+  --rule-strong: #c9d1dd;
+  --chip: #f0f3f7;
+  --accent: #2455d6;
+  --accent-strong: #1b45b5;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6edfc;
+  --est: #9a5a00;
+  --done: #2c7a4f;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1216;
+    --surface: #171b21;
+    --ink: #e6e9ef;
+    --muted: #a2abb9;
+    --faint: #768194;
+    --rule: #262c35;
+    --rule-strong: #353d49;
+    --chip: #1f252d;
+    --accent: #85a8ff;
+    --accent-strong: #a7c0ff;
+    --accent-ink: #0b1224;
+    --accent-soft: #1b2644;
+    --est: #f0b660;
+    --done: #6ccf98;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1216;
+  --surface: #171b21;
+  --ink: #e6e9ef;
+  --muted: #a2abb9;
+  --faint: #768194;
+  --rule: #262c35;
+  --rule-strong: #353d49;
+  --chip: #1f252d;
+  --accent: #85a8ff;
+  --accent-strong: #a7c0ff;
+  --accent-ink: #0b1224;
+  --accent-soft: #1b2644;
+  --est: #f0b660;
+  --done: #6ccf98;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--mono); font-size: .9em; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+
+.page { max-width: 1080px; margin-inline: auto; padding-inline: 20px; padding-block: 40px 72px; }
+
+/* header */
+.masthead { display: grid; gap: 10px; margin-bottom: 24px; }
+.eyebrow {
+  margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+h1 {
+  margin: 0; font-size: clamp(26px, 4vw, 34px); line-height: 1.15; font-weight: 700;
+  letter-spacing: -.01em; text-wrap: balance;
+}
+.lede { margin: 0; max-width: 68ch; color: var(--muted); }
+.approx { color: var(--est); font-weight: 700; margin-right: 2px; }
+
+/* totals */
+.totals {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px;
+  background: var(--rule); border: 1px solid var(--rule); border-radius: 10px;
+  overflow: hidden; margin-bottom: 8px;
+}
+.stat { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+.stat-label {
+  font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted);
+}
+.stat-value { font-size: 24px; font-weight: 650; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.stat-sub { font-size: 13px; color: var(--muted); }
+.stat--key .stat-value { color: var(--accent); }
+
+/* toolbar */
+.toolbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px;
+  padding-block: 12px; background: var(--bg); border-bottom: 1px solid var(--rule);
+}
+.field { display: flex; align-items: center; gap: 8px; }
+.field-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.stepper { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.stepper button {
+  width: 34px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 18px; line-height: 1;
+  cursor: pointer;
+}
+.stepper button:hover { background: var(--chip); }
+.stepper button:disabled { color: var(--faint); cursor: default; background: transparent; }
+.stepper input {
+  width: 46px; border: 0; border-inline: 1px solid var(--rule); background: transparent; color: var(--ink);
+  font: inherit; font-weight: 600; text-align: center; padding-block: 5px; font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button {
+  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px; font-weight: 600;
+  padding: 6px 12px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.bar-end { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.bar-total { font-size: 14px; color: var(--muted); }
+.bar-total strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.btn {
+  border: 1px solid var(--rule-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: 14px;
+  font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.copy-fallback { display: grid; gap: 6px; margin-top: 12px; }
+.copy-fallback textarea {
+  width: 100%; min-height: 160px; font-family: var(--mono); font-size: 12px; padding: 10px;
+  border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--surface); color: var(--ink);
+}
+
+/* sections and items */
+.group { margin-top: 36px; }
+.group-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.group h2 { margin: 0; font-size: 20px; line-height: 1.3; font-weight: 700; text-wrap: balance; }
+.group-meta { margin: 0; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.group-note { margin: 4px 0 0; font-size: 14px; color: var(--muted); max-width: 70ch; }
+.list { margin-top: 10px; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding-inline: 16px; }
+
+.cols, .item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 112px 140px 140px;
+  grid-template-areas: "check main qty buy cost";
+  column-gap: 16px;
+}
+.cols {
+  padding-block: 10px 8px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--muted);
+}
+.cols span:nth-child(2) { grid-area: main; }
+.cols span:nth-child(3) { grid-area: qty; }
+.cols span:nth-child(4) { grid-area: buy; }
+.cols span:nth-child(5) { grid-area: cost; text-align: right; }
+.item { row-gap: 8px; padding-block: 16px; border-top: 1px solid var(--rule); }
+.c-check { grid-area: check; padding-top: 3px; }
+.c-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--done); cursor: pointer; }
+.c-main { grid-area: main; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.c-qty { grid-area: qty; }
+.c-buy { grid-area: buy; }
+.c-cost { grid-area: cost; text-align: right; }
+.c-qty, .c-buy, .c-cost { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.c-buy small, .c-cost small { display: block; font-size: 13px; color: var(--muted); }
+.c-cost small { white-space: nowrap; }
+.cost { font-weight: 650; }
+.lbl { display: none; }
+
+.name { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.35; }
+.pn {
+  display: inline-block; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--muted);
+  background: var(--chip); border: 1px solid var(--rule); border-radius: 4px; padding: 0 6px;
+  margin-left: 6px; vertical-align: 1px; white-space: nowrap;
+}
+.tag {
+  display: inline-block; font-size: 12px; font-weight: 600; color: var(--muted); border: 1px solid var(--rule-strong);
+  border-radius: 999px; padding: 0 8px; margin-left: 6px; vertical-align: 1px; white-space: nowrap;
+}
+.detail { margin: 0; font-size: 14px; color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 2px; }
+.buy {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 6px;
+  background: var(--accent); color: var(--accent-ink); font-size: 14px; font-weight: 650; text-decoration: none;
+}
+.buy:hover { background: var(--accent-strong); }
+.also { font-size: 14px; color: var(--muted); }
+.compare { margin: 0; font-size: 13px; color: var(--muted); }
+.compare a { color: inherit; text-decoration-color: var(--rule-strong); }
+.compare a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.note { margin: 0; font-size: 14px; color: var(--muted); max-width: 72ch; }
+
+.item.is-done .c-main, .item.is-done .c-qty, .item.is-done .c-buy, .item.is-done .c-cost { opacity: .5; }
+.item.is-done .name { text-decoration: line-through; text-decoration-color: var(--faint); }
+.empty { margin: 32px 0 0; color: var(--muted); }
+
+/* salvaged parts, tools, footer */
+.extra { margin-top: 44px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 32px; }
+.extra h2 { margin: 0 0 8px; font-size: 20px; font-weight: 700; }
+.extra ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.foot { margin-top: 44px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }
+.foot p { margin: 0; max-width: 80ch; }
+
+@media (max-width: 760px) {
+  .page { padding-block: 28px 56px; }
+  .totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar { position: static; }
+  .bar-end { margin-left: 0; width: 100%; justify-content: space-between; }
+  .cols { display: none; }
+  .item {
+    grid-template-columns: 24px repeat(3, minmax(0, 1fr));
+    grid-template-areas: "check main main main" ". qty buy cost";
+    column-gap: 12px;
+  }
+  .c-cost { text-align: left; }
+  .c-cost small { white-space: normal; }
+  .lbl {
+    display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .extra { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media print {
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"] {
+    --bg: #ffffff; --surface: #ffffff; --ink: #000000; --muted: #444444; --rule: #cccccc;
+    --rule-strong: #bbbbbb; --accent: #000000; --accent-ink: #000000; --est: #000000; color-scheme: light;
+  }
+  .toolbar, .compare, .also, .copy-fallback { display: none !important; }
+  .page { max-width: none; padding: 0; }
+  .buy { background: none; padding: 0; text-decoration: underline; }
+  .item { break-inside: avoid; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">Open Speaker · bill of materials</p>
+    <h1>Parts and where to buy them</h1>
+    <p class="lede">
+      Every part for the speaker, the store it was priced at, and searches at other stores so
+      you can compare. Prices are in US dollars, checked on <span id="checked-date">26 September 2026</span>,
+      without tax or shipping. <span class="approx" aria-hidden="true">≈</span>marks an estimate: check it
+      in the store. Tick parts off as you buy them; this browser remembers the ticks.
+    </p>
+  </header>
+
+  <noscript>
+    <p>This page needs JavaScript to show the list. The same parts and links are in <a href="BOM.md">BOM.md</a>.</p>
+  </noscript>
+
+  <section class="totals" aria-label="Totals">
+    <div class="stat">
+      <span class="stat-label">Per speaker</span>
+      <span class="stat-value" id="t-per">–</span>
+      <span class="stat-sub">what one speaker uses</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label" id="t-buy-label">To buy</span>
+      <span class="stat-value" id="t-buy">–</span>
+      <span class="stat-sub">whole packs</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Desk test and supplies</span>
+      <span class="stat-value" id="t-once">–</span>
+      <span class="stat-sub">one-time, reusable</span>
+    </div>
+    <div class="stat stat--key">
+      <span class="stat-label">Still to buy</span>
+      <span class="stat-value" id="t-left">–</span>
+      <span class="stat-sub" id="t-left-sub">&nbsp;</span>
+    </div>
+  </section>
+
+  <div class="toolbar" role="region" aria-label="List options">
+    <div class="field">
+      <span class="field-label" id="speakers-label">Speakers</span>
+      <div class="stepper" role="group" aria-labelledby="speakers-label">
+        <button type="button" id="fewer" aria-label="One speaker fewer">−</button>
+        <input id="speakers" type="number" inputmode="numeric" min="1" max="20" value="1" aria-labelledby="speakers-label">
+        <button type="button" id="more" aria-label="One speaker more">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="field-label" id="view-label">Group by</span>
+      <div class="seg" role="group" aria-labelledby="view-label">
+        <button type="button" data-view="category" aria-pressed="true">Category</button>
+        <button type="button" data-view="store" aria-pressed="false">Store</button>
+      </div>
+    </div>
+    <label class="toggle"><input type="checkbox" id="hide-done"> Hide ticked parts</label>
+    <div class="bar-end">
+      <span class="bar-total" aria-live="polite">Still to buy <strong id="bar-left">–</strong></span>
+      <button type="button" class="btn" id="copy">Copy list</button>
+    </div>
+  </div>
+  <div class="copy-fallback" id="copy-fallback" hidden>
+    <label for="copy-text" class="muted">Your browser blocked copying. Select the text below and copy it.</label>
+    <textarea id="copy-text" readonly></textarea>
+  </div>
+
+  <main id="list"></main>
+
+  <div class="extra">
+    <section aria-labelledby="salvaged">
+      <h2 id="salvaged">From the original speaker</h2>
+      <ul>
+        <li><strong>2 full-range drivers</strong>, about 52 mm, 4 Ω. Measure them before you print:
+          <a href="../hardware/speaker_specs/measurements.md">measurements.md</a>.</li>
+        <li><strong>Passive radiator</strong>, if the unit has one. Only for
+          <code>bass_mode = "passive_radiator"</code>.</li>
+      </ul>
+    </section>
+    <section aria-labelledby="tools">
+      <h2 id="tools">Tools</h2>
+      <ul>
+        <li>Soldering iron and solder; the iron also sets the heat-set inserts</li>
+        <li>Multimeter, wire strippers and flush cutters</li>
+        <li>Small Phillips screwdriver and a 2 mm hex key for the M3 screws</li>
+        <li>Hot glue gun</li>
+        <li>Craft knife, steel ruler and a fine file for the acrylic</li>
+        <li>3D printer with at least 160 mm of Z height</li>
+      </ul>
+    </section>
+  </div>
+
+  <footer class="foot">
+    <p>
+      Stores change prices and stock often, so treat every figure as a guide. The same list, with more
+      notes, is in <a href="BOM.md">BOM.md</a>. How it all goes together is in the
+      <a href="ASSEMBLY_GUIDE.md">build guide</a>.
+    </p>
+  </footer>
+</div>
+
+<!-- The parts. scripts/check_bom.py checks that these links and prices match docs/BOM.md. -->
+<script type="application/json" id="bom-data">
+{
+  "checked": "26 September 2026",
+  "groups": [
+    {"id": "electronics", "name": "Electronics"},
+    {"id": "enclosure-hardware", "name": "Enclosure hardware"},
+    {"id": "filament", "name": "Filament"},
+    {"id": "desk-test", "name": "Desk test", "once": true,
+     "note": "Reusable parts for testing everything on the desk before it goes into the enclosure."},
+    {"id": "shop-supplies", "name": "Shop supplies", "once": true}
+  ],
+  "items": [
+    {"id": "pi", "group": "electronics", "name": "Raspberry Pi Zero 2 WH", "part": "SC0721",
+     "detail": "Header soldered on", "qty": "1", "use": [1, 1], "price": 18.00, "estimate": false,
+     "store": "DigiKey", "url": "https://www.digikey.com/en/products/detail/raspberry-pi/SC0721/24627135",
+     "also": [
+       {"store": "PiShop", "url": "https://www.pishop.us/product/raspberry-pi-zero-2w-with-headers/"},
+       {"store": "Adafruit", "url": "https://www.adafruit.com/product/6008", "note": "$19.80, out of stock on 26 Sep"},
+       {"store": "Raspberry Pi resellers", "url": "https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/"}
+     ],
+     "search": "Raspberry Pi Zero 2 WH", "compare": ["google", "amazon", "ebay", "digikey"],
+     "note": "The Zero 2 W without the header is $15, but then you solder the header yourself."},
+
+    {"id": "microsd", "group": "electronics", "name": "microSD card, 32 GB, A1", "part": "SDSQUA4-032G-GN6MA",
+     "detail": "SanDisk Ultra", "qty": "1", "use": [1, 1], "price": 9, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B08GY9NYRM",
+     "also": [
+       {"store": "Walmart", "url": "https://www.walmart.com/ip/SanDisk-32GB-Ultra-microSDHC-A1-UHS-I-U1-Class-10-Memory-Card-with-Adapter-Speed-Up-to-120MB-s-SDSQUA4-032G-GN6MA/691543554"}
+     ],
+     "search": "SanDisk Ultra 32GB microSDHC A1", "compare": ["google", "amazon", "ebay", "walmart"]},
+
+    {"id": "amp", "group": "electronics", "name": "MAX98357A I2S amplifier", "part": "Adafruit 3006",
+     "detail": "3 W into 4 Ω, one per driver", "qty": "2", "use": [2, 1], "price": 5.95, "estimate": false,
+     "store": "Adafruit", "url": "https://www.adafruit.com/product/3006",
+     "search": "MAX98357A I2S amplifier breakout", "compare": ["google", "amazon", "aliexpress", "digikey"],
+     "note": "Other MAX98357A boards work too, but then the right amplifier needs the 390 kΩ resistor instead of 680 kΩ."},
+
+    {"id": "mics", "group": "electronics", "name": "INMP441 I2S microphone module",
+     "detail": "AITRIP, pack of 3", "qty": "2", "use": [2, 3], "unit": ["pack of 3", "packs of 3"],
+     "price": 14, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B0972XP1YS",
+     "also": [
+       {"store": "eBay", "url": "https://www.ebay.com/itm/235775726409", "note": "same pack, $14.43"}
+     ],
+     "search": "INMP441 I2S microphone module", "compare": ["google", "amazon", "ebay", "aliexpress"]},
+
+    {"id": "usbc", "group": "electronics", "name": "USB-C breakout", "part": "Adafruit 4090",
+     "detail": "Power input; the back panel's shelf is sized for this board", "qty": "1", "use": [1, 1],
+     "price": 2.95, "estimate": false,
+     "store": "Adafruit", "url": "https://www.adafruit.com/product/4090",
+     "search": "USB-C breakout board 5.1k", "compare": ["google", "amazon", "aliexpress", "digikey"]},
+
+    {"id": "psu", "group": "electronics", "name": "USB-C power supply, 5.1 V 3 A",
+     "detail": "Raspberry Pi 15 W supply, US plug, black", "qty": "1", "use": [1, 1], "price": 8, "estimate": true,
+     "store": "PiShop", "url": "https://www.pishop.us/product/raspberry-pi-15w-power-supply-us-black/",
+     "also": [
+       {"store": "Adafruit", "url": "https://www.adafruit.com/product/4298", "note": "$8.74, out of stock on 26 Sep"},
+       {"store": "Amazon", "url": "https://www.amazon.com/dp/B07W8XHMJZ"}
+     ],
+     "search": "Raspberry Pi 15W USB-C power supply", "compare": ["google", "amazon", "ebay", "digikey"],
+     "note": "Any 5 V 3 A USB-C supply works."},
+
+    {"id": "oled", "group": "electronics", "name": "1.3\" OLED display, 128 × 64",
+     "detail": "SH1106, I2C, white. Hosyond, pack of 5", "qty": "1", "use": [1, 5],
+     "unit": ["pack of 5", "packs of 5"], "price": 20, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B0C3L7N917",
+     "also": [
+       {"store": "eBay", "url": "https://www.ebay.com/itm/274664796046", "note": "single module; check its size"}
+     ],
+     "search": "1.3 inch OLED SH1106 I2C 128x64", "compare": ["google", "amazon", "ebay", "aliexpress"],
+     "note": "The enclosure is drawn for a 35.4 × 33.5 mm board with a 29.42 × 14.70 mm active area. Check the size of any other module before you buy it."},
+
+    {"id": "leds", "group": "electronics", "name": "WS2812B LED strip, 60 LED/m",
+     "detail": "BTF-LIGHTING, 5 V, IP30, black PCB, 1 m", "qty": "3 LEDs", "use": [3, 60],
+     "unit": ["strip", "strips"], "price": 14, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B01CDTED80",
+     "search": "WS2812B LED strip 60 LED/m 5V IP30", "compare": ["google", "amazon", "ebay", "aliexpress"]},
+
+    {"id": "switches", "group": "electronics", "name": "Tactile switch, 6 × 6 × 4.3 mm", "part": "Omron B3F-1000",
+     "detail": "Through-hole", "qty": "4", "use": [4, 1], "price": 0.35, "estimate": false,
+     "store": "DigiKey", "url": "https://www.digikey.com/en/products/detail/omron-electronics-inc-emc-div/B3F-1000/33150",
+     "search": "Omron B3F-1000", "compare": ["digikey", "mouser", "google"],
+     "note": "The top plate and back panel are drawn for 4.3 mm switches. For a different switch, set switch_height in the model to its height from the board to the top of the plunger."},
+
+    {"id": "r680", "group": "electronics", "name": "Resistor, 680 kΩ, ¼ W", "part": "CFM14JT680K",
+     "detail": "Stackpole. Sets the right amplifier's channel", "qty": "1", "use": [1, 1], "price": 0.10, "estimate": true,
+     "store": "DigiKey", "url": "https://www.digikey.com/en/products/detail/stackpole-electronics-inc/CFM14JT680K/1742269",
+     "also": [
+       {"store": "390 kΩ version", "url": "https://www.digikey.com/en/products/detail/stackpole-electronics-inc/CF14JT390K/1741414", "note": "for other amplifier boards"}
+     ],
+     "search": "680k ohm resistor 1/4W through hole", "compare": ["digikey", "mouser", "amazon"],
+     "note": "680 kΩ is for the Adafruit amplifier, which already has a 1 MΩ pull-up."},
+
+    {"id": "diode", "group": "electronics", "name": "Diode, 1N4001", "part": "1N4001G",
+     "detail": "onsemi", "qty": "1", "use": [1, 1], "price": 0.27, "estimate": false,
+     "store": "DigiKey", "url": "https://www.digikey.com/en/products/detail/onsemi/1N4001G/1485468",
+     "search": "1N4001 diode", "compare": ["digikey", "mouser", "amazon"],
+     "note": "Only needed if the LEDs flicker, but at $0.27 it is cheaper than a second order."},
+
+    {"id": "perf", "group": "electronics", "name": "Perfboard, 2.54 mm pitch",
+     "detail": "ELEGOO kit of 32 double-sided boards", "qty": "2 boards", "use": [2, 32],
+     "unit": ["kit", "kits"], "price": 12, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B072Z7Y19F",
+     "search": "double sided prototype PCB board kit 2.54mm", "compare": ["google", "amazon", "ebay", "aliexpress"],
+     "note": "The three top switches go on a 50 × 12 mm strip cut from a 2 × 8 cm board, the mute switch on a 24 × 14 mm piece."},
+
+    {"id": "ffj", "group": "electronics", "name": "Jumper wires, female/female, 150 mm", "part": "Adafruit 266",
+     "detail": "40 wires", "qty": "~10", "use": [10, 40], "unit": ["pack of 40", "packs of 40"],
+     "price": 3.95, "estimate": false,
+     "store": "Adafruit", "url": "https://www.adafruit.com/product/266",
+     "search": "female to female jumper wires 150mm", "compare": ["google", "amazon", "aliexpress"],
+     "note": "Cut in half, they give the harness female plugs for the Pi's header, so the top plate and back panel stay removable."},
+
+    {"id": "awg26", "group": "electronics", "name": "Silicone wire, 26 AWG",
+     "detail": "6 colours; for the signals", "qty": "~4 m", "use": [1.5, 13], "unit": ["kit", "kits"],
+     "price": 13, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B07G2LRX68",
+     "search": "26 AWG silicone wire kit", "compare": ["google", "amazon", "ebay"]},
+
+    {"id": "awg22", "group": "electronics", "name": "Silicone wire, 22 AWG",
+     "detail": "Red and black; 5 V, ground and the speaker wires", "qty": "~1.5 m", "use": [0.75, 11],
+     "unit": ["set", "sets"], "price": 11, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B07ZFP8KCN",
+     "search": "22 AWG silicone wire red black", "compare": ["google", "amazon", "ebay"]},
+
+    {"id": "inserts", "group": "enclosure-hardware", "name": "Heat-set inserts, M3 × 5.7 mm",
+     "detail": "ruthex, pack of 100", "qty": "6", "use": [6, 100], "unit": ["pack of 100", "packs of 100"],
+     "price": 9.49, "estimate": false,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B08BCRZZS3",
+     "search": "M3 heat set inserts 5.7mm", "compare": ["google", "amazon", "aliexpress"],
+     "note": "They go into 4.0 mm holes, the size in the model."},
+
+    {"id": "m3", "group": "enclosure-hardware", "name": "Countersunk screws, M3",
+     "detail": "uxcell hex socket kit: 8, 10 and 12 mm, 100 of each", "qty": "14 × 8 mm, 4 × 10 mm", "use": [18, 300],
+     "unit": ["kit", "kits"], "price": 11, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B0C6LQ3B5W",
+     "search": "M3 countersunk hex socket screw kit 8mm 10mm", "compare": ["google", "amazon", "aliexpress"]},
+
+    {"id": "selftap", "group": "enclosure-hardware", "name": "Self-tapping screws, M2 and M2.6",
+     "detail": "Pan head assortment of 400", "qty": "4 × M2, 4 × M2.6, 6 mm", "use": [8, 400],
+     "unit": ["kit", "kits"], "price": 9, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B07VQZXGH2",
+     "also": [
+       {"store": "Walmart", "url": "https://www.walmart.com/ip/Luniquz-400Pcs-Black-M2-M2-6-Cross-Pan-Head-Self-Tapping-Screws-Set-Assortment-Kit-for-Plastic-Wood-Soft-Metal-etc/7349665269", "note": "similar kit"}
+     ],
+     "search": "M2 M2.6 self tapping screw assortment", "compare": ["google", "amazon", "aliexpress"],
+     "note": "M2.6 for the Pi (M2.5 × 6 machine screws work too), M2 for the two switch boards."},
+
+    {"id": "feet", "group": "enclosure-hardware", "name": "Rubber feet, 12.7 × 3.6 mm", "part": "3M SJ5312",
+     "detail": "Bumpon, clear, pack of 56", "qty": "4", "use": [4, 56], "unit": ["pack of 56", "packs of 56"],
+     "price": 10, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B000NG60SW",
+     "also": [
+       {"store": "Walmart", "url": "https://www.walmart.com/ip/3M-SJ5312-Clear-Bumpon-Blister-Pack-56-Bumpons/699109564"}
+     ],
+     "search": "3M Bumpon SJ5312", "compare": ["google", "amazon", "walmart", "digikey"],
+     "note": "The recesses underneath are 13.2 mm across, for these feet."},
+
+    {"id": "foam", "group": "enclosure-hardware", "name": "Foam tape, 1 mm × 5 mm",
+     "detail": "Closed-cell EVA, single-sided, 5 m roll", "qty": "~1 m", "use": [1, 5], "unit": ["roll", "rolls"],
+     "price": 7, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B0FMF21TZD",
+     "also": [
+       {"store": "uxcell 1 mm × 10 mm", "url": "https://www.amazon.com/dp/B01L6TE0UO", "note": "cut it narrower"}
+     ],
+     "search": "1mm thick single sided closed cell foam tape", "compare": ["google", "amazon", "ebay"],
+     "note": "The seal gaps in the model are drawn for 1 mm foam. Thicker tape won't compress enough."},
+
+    {"id": "acrylic", "group": "enclosure-hardware", "name": "Smoked acrylic, 1/16\" (1.5 mm)", "part": "#2074",
+     "detail": "Dark smoke, 12 × 12\" sheet", "qty": "1 window", "use": [1, 28], "unit": ["sheet", "sheets"],
+     "price": 7, "estimate": true,
+     "store": "eBay", "url": "https://www.ebay.com/itm/222235546514",
+     "also": [
+       {"store": "Canal Plastics", "url": "https://www.canalplastic.com/products/2064-gray-smoke-acrylic-sheet", "note": "cut to size"},
+       {"store": "T&T Plastic Land", "url": "https://www.ttplasticland.com/products/custom-gray-smoke-transparent-2064-acrylic-sheet", "note": "cut to size"}
+     ],
+     "search": "1/16 smoke gray acrylic sheet 12x12", "compare": ["google", "amazon", "ebay"],
+     "note": "The window is 51.5 × 29.5 mm with 2.75 mm corners; one sheet makes about 50. Set window_thickness in the model to your sheet's thickness."},
+
+    {"id": "polyfill", "group": "enclosure-hardware", "name": "Polyester fibre fill",
+     "detail": "Poly-Fil, 12 oz bag; loosely in the bass chamber", "qty": "a handful", "use": [0.5, 12],
+     "unit": ["bag", "bags"], "price": 5.37, "estimate": false,
+     "store": "Walmart", "url": "https://www.walmart.com/ip/26678911",
+     "search": "Poly-Fil polyester fiber fill 12 oz", "compare": ["google", "amazon", "walmart"]},
+
+    {"id": "petg", "group": "filament", "name": "PETG filament, 1.75 mm",
+     "detail": "Prusament Signal White, 1 kg", "qty": "~455 g", "use": [455, 1000], "unit": ["spool", "spools"],
+     "price": 28.79, "estimate": false,
+     "store": "Printed Solid", "url": "https://www.printedsolid.com/products/prusament-petg-1-75mm-1kg-signal-white",
+     "also": [
+       {"store": "Jet Black", "url": "https://www.printedsolid.com/products/prusament-petg-1-75mm-1kg-jet-black", "note": "for a dark speaker, also $28.79"},
+       {"store": "Prusa", "url": "https://www.prusa3d.com/product/prusament-petg-signal-white-1kg/"},
+       {"store": "Amazon", "url": "https://www.amazon.com/dp/B08BKJ8NY1"}
+     ],
+     "search": "PETG filament 1.75mm 1kg", "compare": ["google", "amazon"],
+     "note": "About 450 g for the printed parts and 5 g for the light diffuser, which has to be white or natural. Sale price, normally $35.99. Any PETG works."},
+
+    {"id": "breadboard", "group": "desk-test", "name": "Half-size breadboard, 400 points", "part": "Adafruit 64",
+     "qty": "1", "use": [1, 1], "price": 5.00, "estimate": true,
+     "store": "Adafruit", "url": "https://www.adafruit.com/product/64",
+     "search": "half size breadboard 400 tie points", "compare": ["google", "amazon", "digikey"]},
+
+    {"id": "fmj", "group": "desk-test", "name": "Jumper wires, female/male, 150 mm", "part": "Adafruit 826",
+     "detail": "40 wires, Pi header to breadboard", "qty": "1 pack", "use": [1, 1], "unit": ["pack of 40", "packs of 40"],
+     "price": 3.95, "estimate": false,
+     "store": "Adafruit", "url": "https://www.adafruit.com/product/826",
+     "search": "female to male jumper wires 150mm", "compare": ["google", "amazon"]},
+
+    {"id": "mmj", "group": "desk-test", "name": "Jumper wires, male/male, 150 mm", "part": "Adafruit 758",
+     "detail": "40 wires, across the breadboard", "qty": "1 pack", "use": [1, 1], "unit": ["pack of 40", "packs of 40"],
+     "price": 3.95, "estimate": true,
+     "store": "Adafruit", "url": "https://www.adafruit.com/product/758",
+     "search": "male to male jumper wires 150mm", "compare": ["google", "amazon"]},
+
+    {"id": "e6000", "group": "shop-supplies", "name": "E6000 clear adhesive, 3.7 oz",
+     "detail": "Holds the display window", "qty": "a few dots", "use": [1, 1], "price": 6, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B007TSYNG8",
+     "also": [
+       {"store": "Walmart", "url": "https://www.walmart.com/ip/E6000-230010-Craft-Industrial-Hardware-Adhesive-3-7-fl-oz/109802301"}
+     ],
+     "search": "E6000 craft adhesive 3.7 oz", "compare": ["google", "amazon", "walmart"]},
+
+    {"id": "heatshrink", "group": "shop-supplies", "name": "Heat-shrink tubing kit",
+     "detail": "Wirefy, 3:1, adhesive-lined, 200 pieces; for the wire splices", "qty": "a few pieces", "use": [1, 1],
+     "unit": ["kit", "kits"], "price": 15, "estimate": true,
+     "store": "Amazon", "url": "https://www.amazon.com/dp/B089D82FLG",
+     "search": "heat shrink tubing kit 3:1 adhesive lined", "compare": ["google", "amazon", "ebay"]}
+  ]
+}
+</script>
+
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById('bom-data').textContent);
+  const groups = new Map(data.groups.map((g) => [g.id, g]));
+  const items = data.items;
+
+  const KEY = 'open-speaker-shopping-list';
+  const DEFAULTS = { speakers: 1, view: 'category', hideDone: false, done: {} };
+  const state = loadState();
+
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+      const s = { ...DEFAULTS, ...saved, done: { ...(saved.done || {}) } };
+      s.speakers = clampSpeakers(s.speakers);
+      if (s.view !== 'store') s.view = 'category';
+      return s;
+    } catch (err) {
+      return { ...DEFAULTS, done: {} };
+    }
+  }
+  function saveState() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (err) {
+      // storage is blocked: the page still works, it just forgets on reload
+    }
+  }
+  function clampSpeakers(v) {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) ? Math.min(20, Math.max(1, n)) : 1;
+  }
+
+  // searches at other stores, for shopping around
+  const SEARCH = {
+    google: ['Google Shopping', (q) => `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(q)}`],
+    amazon: ['Amazon', (q) => `https://www.amazon.com/s?k=${encodeURIComponent(q)}`],
+    ebay: ['eBay', (q) => `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`],
+    aliexpress: ['AliExpress', (q) => `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(q.trim().replace(/\s+/g, '-'))}.html`],
+    digikey: ['DigiKey', (q) => `https://www.digikey.com/en/products/result?keywords=${encodeURIComponent(q)}`],
+    mouser: ['Mouser', (q) => `https://www.mouser.com/c/?q=${encodeURIComponent(q)}`],
+    walmart: ['Walmart', (q) => `https://www.walmart.com/search?q=${encodeURIComponent(q)}`],
+  };
+
+  const cents = (v) => Math.round(v * 100) / 100;
+  const isOnce = (it) => Boolean(groups.get(it.group).once);
+  // how many packs (or pieces) to buy for n speakers; one-time parts are bought once
+  const unitsFor = (it, n) => (isOnce(it) ? 1 : Math.ceil((n * it.use[0]) / it.use[1] - 1e-9));
+  const buyCost = (it, n) => cents(unitsFor(it, n) * it.price);
+  const perSpeaker = (it) => (isOnce(it) ? 0 : cents((it.price * it.use[0]) / it.use[1]));
+  const total = (list, f) => ({
+    value: cents(list.reduce((acc, it) => acc + f(it), 0)),
+    approx: list.some((it) => it.estimate && f(it) > 0),
+  });
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const money = (v, approx) =>
+    `${approx ? '<span class="approx" title="Estimate: check the store">≈</span>' : ''}$${v.toFixed(2)}`;
+  const moneyText = (v, approx) => `${approx ? '≈ ' : ''}$${v.toFixed(2)}`;
+  const link = (url, html, cls) =>
+    `<a${cls ? ` class="${cls}"` : ''} href="${esc(url)}" target="_blank" rel="noopener noreferrer">${html}</a>`;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const buyText = (it, n) => {
+    const u = unitsFor(it, n);
+    return it.unit ? plural(u, it.unit[0], it.unit[1]) : String(u);
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const listEl = $('#list');
+
+  function itemHTML(it, n, showGroup) {
+    const done = Boolean(state.done[it.id]);
+    const cost = buyCost(it, n);
+    const per = perSpeaker(it);
+    const also = (it.also || [])
+      .map((a) => `${link(a.url, esc(a.store))}${a.note ? ` (${esc(a.note)})` : ''}`)
+      .join(', ');
+    const compare = (it.compare || [])
+      .map((k) => link(SEARCH[k][1](it.search), SEARCH[k][0]))
+      .join('<span aria-hidden="true"> · </span>');
+    const perLine = !isOnce(it) && cents(per * n) !== cost
+      ? `<small>${money(per, it.estimate)} per speaker</small>` : '';
+    return `
+      <article class="item${done ? ' is-done' : ''}" data-id="${esc(it.id)}">
+        <div class="c-check">
+          <input type="checkbox" id="done-${esc(it.id)}" data-done="${esc(it.id)}"${done ? ' checked' : ''}>
+          <label for="done-${esc(it.id)}" class="sr-only">Bought: ${esc(it.name)}</label>
+        </div>
+        <div class="c-main">
+          <h3 class="name">${esc(it.name)}${it.part ? ` <span class="pn">${esc(it.part)}</span>` : ''}${
+            showGroup ? ` <span class="tag">${esc(groups.get(it.group).name)}</span>` : ''}</h3>
+          ${it.detail ? `<p class="detail">${esc(it.detail)}</p>` : ''}
+          <div class="links">
+            ${link(it.url, `${esc(it.store)} <span aria-hidden="true">↗</span>`, 'buy')}
+            ${also ? `<span class="also">Also: ${also}</span>` : ''}
+          </div>
+          ${compare ? `<p class="compare">Compare prices: ${compare}</p>` : ''}
+          ${it.note ? `<p class="note">${esc(it.note)}</p>` : ''}
+        </div>
+        <div class="c-qty"><span class="lbl">Per speaker</span>${isOnce(it) ? '<span class="muted">one-time</span>' : esc(it.qty)}</div>
+        <div class="c-buy"><span class="lbl">Buy</span>${esc(buyText(it, n))}<small>${money(it.price, it.estimate)} each</small></div>
+        <div class="c-cost"><span class="lbl">Cost</span><span class="cost">${money(cost, it.estimate)}</span>${perLine}</div>
+      </article>`;
+  }
+
+  function sections(n) {
+    if (state.view === 'store') {
+      const byStore = new Map();
+      for (const it of items) {
+        if (!byStore.has(it.store)) byStore.set(it.store, []);
+        byStore.get(it.store).push(it);
+      }
+      return [...byStore.entries()]
+        .map(([store, list]) => ({ key: store, title: store, list, sum: total(list, (it) => buyCost(it, n)) }))
+        .sort((a, b) => b.sum.value - a.sum.value);
+    }
+    return data.groups.map((g) => {
+      const list = items.filter((it) => it.group === g.id);
+      return { key: g.id, title: g.name, note: g.note, once: g.once, list, sum: total(list, (it) => buyCost(it, n)) };
+    });
+  }
+
+  function renderList() {
+    const n = state.speakers;
+    const byStore = state.view === 'store';
+    const buyHead = `Buy for ${plural(n, 'speaker', 'speakers')}`;
+    const html = sections(n).map((sec, i) => {
+      const visible = state.hideDone ? sec.list.filter((it) => !state.done[it.id]) : sec.list;
+      if (!visible.length) return '';
+      const count = plural(sec.list.length, 'part', 'parts');
+      const meta = sec.once ? `${count} · ${money(sec.sum.value, sec.sum.approx)}, one-time`
+        : `${count} · ${money(sec.sum.value, sec.sum.approx)}`;
+      return `
+        <section class="group" aria-labelledby="sec-${i}">
+          <div class="group-head">
+            <h2 id="sec-${i}">${esc(sec.title)}</h2>
+            <p class="group-meta">${meta}</p>
+          </div>
+          ${sec.note ? `<p class="group-note">${esc(sec.note)}</p>` : ''}
+          <div class="list">
+            <div class="cols" aria-hidden="true"><span></span><span>Part</span><span>Per speaker</span><span>${buyHead}</span><span>Cost</span></div>
+            ${visible.map((it) => itemHTML(it, n, byStore)).join('')}
+          </div>
+        </section>`;
+    }).join('');
+    listEl.innerHTML = html || '<p class="empty">Everything is ticked off. Untick “Hide ticked parts” to see the list again.</p>';
+  }
+
+  function renderTotals() {
+    const n = state.speakers;
+    const speakerParts = items.filter((it) => !isOnce(it));
+    const per = total(speakerParts, perSpeaker);
+    const buy = total(speakerParts, (it) => buyCost(it, n));
+    const once = total(items.filter(isOnce), (it) => buyCost(it, n));
+    const left = total(items.filter((it) => !state.done[it.id]), (it) => buyCost(it, n));
+    const ticked = items.filter((it) => state.done[it.id]).length;
+    $('#t-per').innerHTML = money(per.value, per.approx);
+    $('#t-buy-label').textContent = `To buy for ${plural(n, 'speaker', 'speakers')}`;
+    $('#t-buy').innerHTML = money(buy.value, buy.approx);
+    $('#t-once').innerHTML = money(once.value, once.approx);
+    $('#t-left').innerHTML = money(left.value, left.approx);
+    $('#t-left-sub').textContent = `${ticked} of ${items.length} parts ticked`;
+    $('#bar-left').innerHTML = money(left.value, left.approx);
+  }
+
+  function renderControls() {
+    $('#speakers').value = state.speakers;
+    $('#fewer').disabled = state.speakers <= 1;
+    $('#more').disabled = state.speakers >= 20;
+    $('#hide-done').checked = state.hideDone;
+    document.querySelectorAll('[data-view]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.view === state.view));
+    });
+  }
+
+  function render() {
+    renderControls();
+    renderTotals();
+    renderList();
+  }
+
+  function setSpeakers(v) {
+    state.speakers = clampSpeakers(v);
+    saveState();
+    render();
+  }
+
+  $('#fewer').addEventListener('click', () => setSpeakers(state.speakers - 1));
+  $('#more').addEventListener('click', () => setSpeakers(state.speakers + 1));
+  $('#speakers').addEventListener('change', (e) => setSpeakers(e.target.value));
+  document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
+    state.view = b.dataset.view;
+    saveState();
+    render();
+  }));
+  $('#hide-done').addEventListener('change', (e) => {
+    state.hideDone = e.target.checked;
+    saveState();
+    renderList();
+  });
+  listEl.addEventListener('change', (e) => {
+    const id = e.target.dataset.done;
+    if (!id) return;
+    if (e.target.checked) state.done[id] = true;
+    else delete state.done[id];
+    saveState();
+    renderTotals();
+    if (state.hideDone) renderList();
+    else e.target.closest('.item').classList.toggle('is-done', e.target.checked);
+  });
+
+  // a plain-text list of the parts still to buy, grouped by store
+  function listText() {
+    const n = state.speakers;
+    const open = items.filter((it) => !state.done[it.id]);
+    const stores = new Map();
+    for (const it of open) {
+      if (!stores.has(it.store)) stores.set(it.store, []);
+      stores.get(it.store).push(it);
+    }
+    const lines = [`Open Speaker parts for ${plural(n, 'speaker', 'speakers')} (prices checked ${data.checked}, ≈ = estimate)`, ''];
+    for (const [store, list] of stores) {
+      const sum = total(list, (it) => buyCost(it, n));
+      lines.push(`${store}: ${moneyText(sum.value, sum.approx)}`);
+      for (const it of list) {
+        lines.push(`- ${it.name}${it.part ? ` (${it.part})` : ''}: ${buyText(it, n)}, ${moneyText(buyCost(it, n), it.estimate)}`);
+        lines.push(`  ${it.url}`);
+      }
+      lines.push('');
+    }
+    const left = total(open, (it) => buyCost(it, n));
+    lines.push(`Total: ${moneyText(left.value, left.approx)}`);
+    return lines.join('\n');
+  }
+
+  function legacyCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch (err) {
+      ok = false;
+    }
+    ta.remove();
+    return ok;
+  }
+
+  $('#copy').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const text = listText();
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch (err) {
+      ok = legacyCopy(text);
+    }
+    const fallback = $('#copy-fallback');
+    if (ok) {
+      fallback.hidden = true;
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = 'Copy list'; }, 2000);
+    } else {
+      $('#copy-text').value = text;
+      fallback.hidden = false;
+      $('#copy-text').select();
+    }
+  });
+
+  $('#checked-date').textContent = data.checked;
+  render();
+})();
+</script>
+</body>
+</html>

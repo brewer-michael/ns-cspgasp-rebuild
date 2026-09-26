@@ -60,7 +60,8 @@ original's footprint.
 | Enclosure | 100 × 100 × 160 mm, PETG, no supports; ported bass chamber |
 
 About $87 in parts per speaker, or about $227 for the first one, because many parts
-come in packs: see the [bill of materials](docs/BOM.md), with a link for every part.
+come in packs: see the [bill of materials](docs/BOM.md), with a link for every part. To
+shop, open [docs/shopping-list.html](docs/shopping-list.html) in a browser.
 
 ## Getting started
 
