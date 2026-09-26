@@ -145,6 +145,7 @@ class HomeAssistant:
             try:
                 hello = await asyncio.wait_for(ws.receive_json(), self.timeout)
                 if hello.get("type") != "auth_required":
+                    await ws.close()
                     raise HomeAssistantError(f"unexpected first message: {hello}")
                 await ws.send_json({"type": "auth", "access_token": self.token})
                 reply = await asyncio.wait_for(ws.receive_json(), self.timeout)

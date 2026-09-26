@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import AsyncIterable
 
 from wyoming.asr import Transcribe, Transcript, TranscriptChunk, TranscriptStop
@@ -50,7 +51,8 @@ class WyomingStt(SpeechToText):
         except (OSError, asyncio.IncompleteReadError) as err:
             raise SttError(f"speech-to-text server {self.uri} failed: {err}") from err
         finally:
-            await client.disconnect()
+            with contextlib.suppress(Exception):
+                await client.disconnect()
 
     @staticmethod
     async def _read_transcript(client: AsyncClient) -> str:

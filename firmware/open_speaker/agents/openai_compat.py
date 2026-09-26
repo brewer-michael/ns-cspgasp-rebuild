@@ -111,7 +111,7 @@ class OpenAiAgent(ConversationAgent):
                     detail = (await response.text())[:300]
                     raise AgentError(f"{self.endpoint} returned HTTP {response.status}: {detail}")
                 result = await response.json(content_type=None)
-        except (aiohttp.ClientError, TimeoutError) as err:
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
             raise AgentError(f"language model request to {self.endpoint} failed: {err}") from err
 
         try:

@@ -44,7 +44,8 @@ class WyomingTts(TextToSpeech):
             await client.write_event(Synthesize(text=text, voice=self._voice(language)).event())
             start = await asyncio.wait_for(self._first_audio(client), self.timeout)
         except BaseException as err:
-            await client.disconnect()
+            with contextlib.suppress(Exception):
+                await client.disconnect()
             if isinstance(err, TtsError):
                 raise
             if isinstance(err, (OSError, TimeoutError, asyncio.IncompleteReadError)):

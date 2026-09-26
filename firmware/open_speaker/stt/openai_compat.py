@@ -63,7 +63,7 @@ class OpenAiStt(SpeechToText):
                     detail = (await response.text())[:300]
                     raise SttError(f"{self.endpoint} returned HTTP {response.status}: {detail}")
                 result = await response.json(content_type=None)
-        except (aiohttp.ClientError, TimeoutError) as err:
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
             raise SttError(f"speech-to-text request to {self.endpoint} failed: {err}") from err
         text = result.get("text") if isinstance(result, dict) else None
         if not isinstance(text, str):
