@@ -132,6 +132,18 @@ def test_find_timers_by_name(scheduler: Scheduler) -> None:
     assert scheduler.find_timers(None) == [plain, green_tea, tea, pizza]
 
 
+def test_find_timers_by_length(scheduler: Scheduler) -> None:
+    five = scheduler.add_timer(300)
+    tea = scheduler.add_timer(180, "tea")
+    also_five = scheduler.add_timer(300, "eggs")
+    # "cancel the 5 minute timer": no timer has that name, so match the length
+    assert scheduler.find_timers("5 minute") == [five, also_five]
+    assert scheduler.find_timers("three minute") == [tea]
+    assert scheduler.find_timers("10 minute") == []
+    assert scheduler.cancel_timers("five minute") == [five, also_five]
+    assert scheduler.timers() == [tea]
+
+
 def test_cancel_without_a_name_cancels_the_timer_ending_first(scheduler: Scheduler) -> None:
     long = scheduler.add_timer(600)
     short = scheduler.add_timer(60)

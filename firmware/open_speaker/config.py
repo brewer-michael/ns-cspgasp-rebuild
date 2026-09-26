@@ -590,6 +590,11 @@ def validate(config: Config) -> None:
     _require(0 < config.status_leds.brightness <= 1, "status_leds.brightness must be 0-1", errors)
     _require(config.status_leds.count >= 1, "status_leds.count must be at least 1", errors)
     _require(
+        config.status_leds.type != "ws2812" or config.status_leds.spi_bus == 0,
+        "status_leds.spi_bus must be 0: SPI1 uses GPIO19-21, which the I2S audio needs",
+        errors,
+    )
+    _require(
         sorted(config.status_leds.color_order.upper()) == ["B", "G", "R"],
         "status_leds.color_order must be a permutation of RGB",
         errors,

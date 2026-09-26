@@ -460,9 +460,12 @@ def recognize(text: str) -> Intent | None:
             if when is not None:
                 return CancelAlarm(hour=when.hour, minute=when.minute, ambiguous=when.ambiguous)
             return CancelAlarm()
-        # "set" after "alarm"/"is"/"are" is a question: "is there an alarm set"
-        if re.search(r"\b(what|when|which|do i have|is there|any)\b", text) and not re.search(
-            r"\b(?<!alarm )(?<!alarms )(?<!is )(?<!are )set\b|\bwake me\b", text
+        # "set" after "alarm"/"is"/"are"/"have I" is a question: "is there an alarm set"
+        if re.search(
+            r"\b(what|when|which|do i have|is there|any|is my|are my|have i|did i)\b", text
+        ) and not re.search(
+            r"\b(?<!alarm )(?<!alarms )(?<!is )(?<!are )(?<!have i )(?<!did i )set\b|\bwake me\b",
+            text,
         ):
             return AlarmStatus()
         when = parse_clock_time(text)

@@ -217,6 +217,11 @@ ALARM_CONTROL = [
     ("which alarms are set", AlarmStatus()),
     ("do i have an alarm set for tomorrow", AlarmStatus()),
     ("what time is my alarm set for", AlarmStatus()),
+    ("is my alarm set", AlarmStatus()),
+    ("is my alarm on", AlarmStatus()),
+    ("are my alarms set for tomorrow", AlarmStatus()),
+    ("have i set an alarm", AlarmStatus()),
+    ("did i set an alarm for tomorrow", AlarmStatus()),
 ]
 
 STOP_AND_SNOOZE = [

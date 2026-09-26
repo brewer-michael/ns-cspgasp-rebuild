@@ -514,7 +514,13 @@ def test_spi0_pins_are_reserved_while_ws2812_leds_are_fitted(pin: int) -> None:
         f"buttons.volume_up: GPIO{pin} is already used by the status LEDs (SPI0)"
     ]
     assert build(buttons={"volume_up": pin}, status_leds={"type": "none"}).buttons.volume_up == pin
-    assert build(buttons={"volume_up": pin}, status_leds={"spi_bus": 1}).buttons.volume_up == pin
+
+
+def test_ws2812_leds_cannot_use_spi1() -> None:
+    assert problems({**HA, "status_leds": {"spi_bus": 1}}) == [
+        "status_leds.spi_bus must be 0: SPI1 uses GPIO19-21, which the I2S audio needs"
+    ]
+    assert build(status_leds={"type": "none", "spi_bus": 1}).status_leds.spi_bus == 1
 
 
 @pytest.mark.parametrize(

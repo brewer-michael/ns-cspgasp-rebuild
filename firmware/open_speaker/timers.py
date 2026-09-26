@@ -18,7 +18,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from .intents import TOMORROW, describe_clock, describe_repeat
+from .intents import TOMORROW, describe_clock, describe_repeat, parse_duration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -197,7 +197,13 @@ class Scheduler:
         timers = self.timers()
         if name is None:
             return timers
-        return [t for t in timers if t.name and name in t.name]
+        matches = [t for t in timers if t.name and name in t.name]
+        if not matches:
+            # "the 5 minute timer": the length it was set for
+            seconds, _ = parse_duration(name)
+            if seconds:
+                matches = [t for t in timers if abs(t.seconds - seconds) < 1]
+        return matches
 
     def cancel_timers(self, name: str | None = None, all: bool = False) -> list[Timer]:
         if all:
