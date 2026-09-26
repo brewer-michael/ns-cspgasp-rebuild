@@ -250,6 +250,8 @@ STOP_AND_SNOOZE = [
     ("snooze for ten minutes", Snooze(10)),
     ("snooze 15 minutes", Snooze(15)),
     ("snooze for an hour", Snooze(60)),
+    ("snooze for 30 seconds", Snooze(1)),
+    ("snooze for 90 seconds", Snooze(2)),
 ]
 
 VOLUME = [

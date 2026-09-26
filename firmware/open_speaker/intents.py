@@ -417,8 +417,9 @@ def recognize(text: str) -> Intent | None:
         return Stop(alarm="alarm" in words)
 
     if text.startswith("snooze"):
-        minutes, _ = parse_duration(text)
-        return Snooze(minutes // 60 if minutes else None)
+        seconds, _ = parse_duration(text)
+        # whole minutes, at least one: "snooze for 30 seconds" is a one-minute snooze
+        return Snooze(max(1, round(seconds / 60)) if seconds else None)
 
     if _VOLUME_UP.match(text):
         return ChangeVolume(steps=1)
