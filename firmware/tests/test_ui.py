@@ -382,6 +382,7 @@ def shown(renderer: Tm1637Renderer, state: DisplayState, night: bool = False) ->
 @pytest.fixture
 def tm() -> Tm1637Renderer:
     renderer = Tm1637Renderer(FakeTm1637(), brightness=3, night_brightness=0)
+    # the first frame also sets the brightness; the tests below only look at the text
     renderer.render(DisplayState(now=at(3, 33, 33), mode="----"), night=False)
     renderer.device.take()
     return renderer

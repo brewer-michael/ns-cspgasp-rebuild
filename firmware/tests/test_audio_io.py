@@ -63,7 +63,6 @@ out = sys.stdout.buffer
 if mode in ("exit", "fail"):
     sys.stderr.write("device lost\n" if mode == "exit" else "device busy\n")
     sys.stderr.flush()
-    time.sleep(0.02)
     if mode == "fail":
         sys.exit(2)
 with open(data_path, "rb") as f:
@@ -143,7 +142,7 @@ async def listen():
 def exits(caplog: pytest.LogCaptureFixture) -> list[tuple[Any, ...]]:
     """(exit code, error output, restart delay) for each logged recorder exit."""
     return [
-        tuple(r.args)  # type: ignore[arg-type]
+        tuple(r.args)
         for r in caplog.records
         if r.getMessage().startswith("Microphone recorder exited")
     ]
