@@ -123,7 +123,10 @@ class Microphone:
                     delay = self.restart_delay
                     yield self.process(data)
             except asyncio.IncompleteReadError:
-                pass
+                # The output ended: let the recorder exit by itself first, as signalling
+                # a process that has just exited can reap it and lose its exit code.
+                with contextlib.suppress(TimeoutError):
+                    await asyncio.wait_for(proc.wait(), 1.0)
             finally:
                 await terminate(proc)
                 stderr_task.cancel()

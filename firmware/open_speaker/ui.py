@@ -293,6 +293,7 @@ class Display:
 
     async def _run(self) -> None:
         while True:
+            self._refresh.clear()
             state = self.state()
             night = is_night(state.now, self.night_start, self.night_end)
             if night != self.night:
@@ -304,7 +305,6 @@ class Display:
             except OSError as err:
                 _LOGGER.error("Display update failed: %s", err)
                 await asyncio.sleep(5)
-            self._refresh.clear()
             # wake at the next second boundary (or earlier on refresh)
             delay = 1.0 - (datetime.now().microsecond / 1_000_000)
             with contextlib.suppress(TimeoutError):
