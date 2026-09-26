@@ -7,19 +7,19 @@ confirmed: check it in the store.
 
 | | Per speaker | First build |
 |---|--:|--:|
-| [Electronics](#electronics) | $69.64 | $139.57 |
-| [Enclosure hardware](#enclosure-hardware) | $3.99 | $58.86 |
+| [Electronics](#electronics) | ≈ $69.64 | ≈ $139.57 |
+| [Enclosure hardware](#enclosure-hardware) | ≈ $3.99 | ≈ $58.86 |
 | [Filament](#filament) | $13.10 | $28.79 |
 | **Speaker** | **≈ $87** | **≈ $227** |
-| [Desk test parts](#desk-test) (reusable) | | $12.90 |
-| [Shop supplies](#shop-supplies) | | $21.00 |
+| [Desk test parts](#desk-test) (reusable) | | ≈ $12.90 |
+| [Shop supplies](#shop-supplies) | | ≈ $21.00 |
 | **Everything** | | **≈ $261** |
 
 *Per speaker* counts only what one speaker uses. *First build* is what you pay,
-because screws, wire, filament and several modules only come in packs. $145 of the
-$227 are estimates, mostly Amazon packs. A second speaker costs about $65 more: a
-Pi, microSD card, amplifiers, USB-C breakout, power supply and switches, plus
-another pack of microphones.
+because screws, wire, filament and several modules only come in packs. Of the
+$227, $145 is estimated, mostly Amazon packs. A second speaker costs about $65
+more: a Pi, microSD card, amplifiers, USB-C breakout, power supply and switches,
+plus another pack of microphones.
 
 ## Electronics
 
