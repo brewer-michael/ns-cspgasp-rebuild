@@ -175,10 +175,11 @@ async def _check_homeassistant(
         if config.pipeline.mode == "homeassistant":
             result = await ha.command({"type": "assist_pipeline/pipeline/list"})
             pipelines = {p["id"]: p for p in (result or {}).get("pipelines", [])}
-            wanted = config.homeassistant.pipeline or (result or {}).get("preferred_pipeline")
+            preferred = (result or {}).get("preferred_pipeline")
+            wanted = config.homeassistant.pipeline or preferred
             pipeline = pipelines.get(wanted or "")
             if pipeline is None:
-                report.add(FAIL, "Assist pipeline", f"{wanted!r} not found; have {list(pipelines)}")
+                report.add(FAIL, "Assist pipeline", f"{wanted!r} not found")
             else:
                 detail = (
                     f"{pipeline.get('name')}: stt={pipeline.get('stt_engine')}, "
@@ -186,6 +187,10 @@ async def _check_homeassistant(
                 )
                 status = OK if pipeline.get("stt_engine") else FAIL
                 report.add(status, "Assist pipeline", detail)
+            # the ids to use for homeassistant.pipeline in the configuration
+            for pid, item in pipelines.items():
+                mark = " (preferred)" if pid == preferred else ""
+                print(f"     {pid}  {item.get('name')}{mark}", flush=True)
         entity = config.display.temperature.entity
         if entity:
             state = await ha.get_state(entity)
