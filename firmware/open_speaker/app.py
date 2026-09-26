@@ -7,6 +7,7 @@ import contextlib
 import enum
 import json
 import logging
+import math
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
@@ -97,6 +98,8 @@ def format_temperature(state: dict[str, Any] | None, unit_override: str | None) 
     try:
         number = float(value)
     except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
         return None
     unit = unit_override if unit_override is not None else unit
     text = f"{round(number)}{unit if unit.startswith('°') else '°' + unit if unit else '°'}"

@@ -53,7 +53,8 @@ class TM1637:
         if pin_factory is None:
             from gpiozero import Device
 
-            pin_factory = Device.ensure_pin_factory()
+            Device.ensure_pin_factory()
+            pin_factory = Device.pin_factory
         self._clk = pin_factory.pin(clk_pin)
         self._dio = pin_factory.pin(dio_pin)
         self._clk.function = "output"

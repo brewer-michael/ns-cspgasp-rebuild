@@ -15,7 +15,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any
 
-from aiohttp import web
+from aiohttp import ClientError, web
 
 from .config import ApiConfig
 from .homeassistant import HomeAssistantError
@@ -75,7 +75,7 @@ def create_app(speaker: Speaker, token: str | None = None) -> web.Application:
             return await handler(request)
         except BadRequest as err:
             return web.json_response({"error": str(err)}, status=400)
-        except (PipelineFailure, HomeAssistantError) as err:
+        except (PipelineFailure, HomeAssistantError, ClientError) as err:
             return web.json_response({"error": str(err)}, status=502)
 
     async def body(request: web.Request) -> dict[str, Any]:
@@ -119,12 +119,18 @@ def create_app(speaker: Speaker, token: str | None = None) -> web.Application:
         speaker.stop_everything()
         return web.json_response({"status": "stopped"})
 
+    def integer(data: dict[str, Any], key: str) -> int:
+        try:
+            return int(data[key])
+        except (TypeError, ValueError) as err:
+            raise BadRequest(f"{key} must be a whole number") from err
+
     async def volume(request: web.Request) -> web.Response:
         data = await body(request)
         if "level" in data:
-            level = await speaker.change_volume(level=int(data["level"]))
+            level = await speaker.change_volume(level=integer(data, "level"))
         elif "steps" in data:
-            level = await speaker.change_volume(steps=int(data["steps"]))
+            level = await speaker.change_volume(steps=integer(data, "steps"))
         else:
             raise BadRequest("level or steps is required")
         return web.json_response({"volume": level})
