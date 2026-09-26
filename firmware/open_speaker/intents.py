@@ -243,7 +243,9 @@ def parse_clock_time(text: str) -> ClockTime | None:
         hour, minute = int(match.group(1)), int(match.group(2))
     else:
         rel = re.search(
-            r"\b(half|quarter|\S+(?: minutes?)?) (past|after|to|till|before) (\S+)", text
+            r"\b(half|quarter|(?:(?:twenty|thirty|forty|fifty) )?\S+(?: minutes?)?) "
+            r"(past|after|to|till|before) (\S+)",
+            text,
         )
         if rel:
             amount, direction, target = rel.groups()
@@ -259,10 +261,10 @@ def parse_clock_time(text: str) -> ClockTime | None:
                     hour = (hour - 1) % 12 or 12
                     minute = 60 - offset
         if hour is None:
-            # "my 7 am alarm", "six thirty pm", "my seven thirty alarm": a time right
-            # before am/pm or before the word alarm
+            # "my 7 am alarm", "six thirty pm", "my seven thirty alarm", "the 7 o'clock
+            # alarm": a time right before am/pm, o'clock or the word alarm
             for i, word in enumerate(words):
-                if word not in ("am", "pm", "alarm", "alarms"):
+                if word not in ("am", "pm", "oclock", "alarm", "alarms"):
                     continue
                 for start in (i - 2, i - 1):
                     if start < 0 or words[start] in ("a", "an"):
@@ -285,6 +287,8 @@ def parse_clock_time(text: str) -> ClockTime | None:
                 if word in ("at", "for", "to") and i + 1 < len(words):
                     value, j = parse_number(words, i + 1)
                     if value is None or value != int(value) or value > 24:
+                        continue
+                    if j < len(words) and words[j] in _UNIT_SECONDS:  # "for 10 minutes"
                         continue
                     hour = int(value)
                     # "seven thirty" / "7 45" / "six oh five"
@@ -323,7 +327,7 @@ def _repeat_days(text: str) -> tuple[frozenset[int], int | None]:
     """Return (repeat weekdays, one-shot day) from phrases like "every weekday"."""
     if re.search(r"\b(every day|everyday|daily|each day)\b", text):
         return EVERY_DAY, None
-    if re.search(r"\b(every weekday|weekdays|workdays|work days|every workday)\b", text):
+    if re.search(r"\b(every weekday|weekdays?|workdays|work days|every workday)\b", text):
         return WEEKDAYS, None
     if re.search(r"\b(every weekend|weekends)\b", text):
         return WEEKENDS, None
@@ -333,6 +337,10 @@ def _repeat_days(text: str) -> tuple[frozenset[int], int | None]:
                 if d.rstrip("s") in DAY_NAMES}  # fmt: skip
         if days:
             return frozenset(days), None
+    # "on mondays and wednesdays"
+    plural = {DAY_NAMES.index(d) for d in re.findall(r"\b(\w+day)s\b", text) if d in DAY_NAMES}
+    if plural:
+        return frozenset(plural), None
     if re.search(r"\btomorrow\b", text):
         return frozenset(), TOMORROW
     for index, name in enumerate(DAY_NAMES):
@@ -452,8 +460,9 @@ def recognize(text: str) -> Intent | None:
             if when is not None:
                 return CancelAlarm(hour=when.hour, minute=when.minute, ambiguous=when.ambiguous)
             return CancelAlarm()
+        # "set" after "alarm"/"is"/"are" is a question: "is there an alarm set"
         if re.search(r"\b(what|when|which|do i have|is there|any)\b", text) and not re.search(
-            r"\b(set|wake me)\b", text
+            r"\b(?<!alarm )(?<!alarms )(?<!is )(?<!are )set\b|\bwake me\b", text
         ):
             return AlarmStatus()
         when = parse_clock_time(text)

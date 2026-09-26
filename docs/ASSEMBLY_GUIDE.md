@@ -143,6 +143,8 @@ kitchen lights", "is the front door locked?", "how far away is the moon?".
 or a timer's countdown take the temperature's place for a moment. "AL" means an
 alarm is set. It dims from 22:00 to 07:00.
 
+![Clock face examples](images/display.png)
+
 **Light.** Dim blue: ready. Green: listening. Pulsing cyan: thinking. Pulsing blue: speaking.
 Pulsing orange: alarm or timer. Dim red: microphone muted. Red: error.
 

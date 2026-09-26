@@ -114,7 +114,12 @@ class Scheduler:
     # -- lifecycle ------------------------------------------------------------
 
     async def start(self) -> None:
-        self._load()
+        try:
+            self._load()
+        except (AttributeError, TypeError, ValueError) as err:  # valid JSON, wrong shape
+            _LOGGER.error("Could not load %s, starting without timers: %s", self.state_file, err)
+            self._timers.clear()
+            self._alarms.clear()
         self._task = asyncio.create_task(self._run(), name="scheduler")
 
     async def stop(self) -> None:

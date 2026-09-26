@@ -29,6 +29,8 @@ original's footprint.
 - **An HTTP API** for Home Assistant automations: announcements, timers, alarms,
   volume.
 
+![The clock face: time, AL/PM, and the temperature slot showing the temperature, the volume, a timer or "mic off"](docs/images/display.png)
+
 ## How it works
 
 ```
