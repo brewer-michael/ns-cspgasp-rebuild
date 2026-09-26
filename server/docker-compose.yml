@@ -1,0 +1,56 @@
+# Speech and language model servers for Open Speaker. Run them on any Linux
+# machine on your network: a mini PC, a NAS, or the machine that runs Home Assistant.
+#
+#   docker compose up -d
+#   docker compose exec ollama ollama pull llama3.2
+#
+# Then either add them to Home Assistant (Settings > Devices & services: "Wyoming
+# Protocol" for whisper and piper, "Ollama" for the language model), or point the
+# speaker at them directly with pipeline.mode: local. See docs/LOCAL_AI.md.
+#
+# Settings can go in a .env file next to this one, e.g. WHISPER_MODEL=small-int8.
+# NVIDIA GPU:  docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+
+services:
+  # speech-to-text, Wyoming protocol on port 10300
+  # models: tiny-int8 (fastest), base-int8 (default), small-int8 (more accurate)
+  whisper:
+    image: rhasspy/wyoming-whisper
+    command: --model ${WHISPER_MODEL:-base-int8} --language ${LANGUAGE:-en}
+    volumes:
+      - ./data/whisper:/data
+    ports:
+      - "10300:10300"
+    restart: unless-stopped
+
+  # text-to-speech, Wyoming protocol on port 10200
+  # voices: https://huggingface.co/rhasspy/piper-voices
+  piper:
+    image: rhasspy/wyoming-piper
+    command: --voice ${PIPER_VOICE:-en_US-lessac-medium}
+    volumes:
+      - ./data/piper:/data
+    ports:
+      - "10200:10200"
+    restart: unless-stopped
+
+  # language models, OpenAI-compatible API on port 11434 (http://host:11434/v1)
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ./data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+
+  # Optional wake word detection on the server (wake.engine: wyoming). The speaker
+  # runs microWakeWord itself, which is usually better. Start with:
+  #   docker compose --profile wakeword up -d
+  openwakeword:
+    image: rhasspy/wyoming-openwakeword
+    command: --preload-model ${WAKE_WORD:-ok_nabu}
+    ports:
+      - "10400:10400"
+    restart: unless-stopped
+    profiles:
+      - wakeword

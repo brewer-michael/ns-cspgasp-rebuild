@@ -1,523 +1,162 @@
-# Assembly Guide: Open Hardware Smart Speaker
+# Build guide
 
-Step-by-step instructions for building the open hardware smart speaker from salvaged NS-CSPGASP speakers and new components.
+From an Insignia NS-CSPGASP on the bench to a working Open Speaker. Parts are in
+[BOM.md](BOM.md), wiring in
+[gpio_pinout.md](../hardware/schematics/gpio_pinout.md), and the enclosure in
+[hardware/enclosure/README.md](../hardware/enclosure/README.md).
 
----
+Everything is tested on the desk before it goes into the enclosure.
 
-## Prerequisites
+## 1. Take the drivers out of the original
 
-### Tools Required
+1. Peel off the rubber feet and remove the screws under them, then release the
+   clips around the seam with a plastic pry tool.
+2. Inside is a plastic speaker box that holds both drivers, and the Condor boards
+   on top of it. Unplug the speaker cables from the main board.
+3. Unscrew the halves of the speaker box. The drivers sit in round seats between
+   the halves, with rubber rings around them. Lift them out without touching the
+   cones. If there's a passive radiator (a flat disc with a rubber surround), keep
+   it too.
+4. Mark each driver's + terminal (usually red, or a dot or "+" on the frame).
 
-- [ ] Soldering iron (temperature controlled, ~350°C)
-- [ ] Solder (60/40 or lead-free)
-- [ ] Flux (makes soldering easier)
-- [ ] Wire strippers
-- [ ] Multimeter
-- [ ] Small screwdrivers (Phillips, flathead)
-- [ ] Heat gun or lighter (for heat-shrink)
-- [ ] 3D printer (or access to one)
-- [ ] Hot glue gun (optional)
+## 2. Measure and test the drivers
 
-### Components
+Fill in [measurements.md](../hardware/speaker_specs/measurements.md): frame
+diameter, cone diameter, the widest part behind the flange, flange thickness and
+depth. These go into the enclosure model (step 6).
 
-See [docs/BOM.md](BOM.md) for the full bill of materials.
+- Resistance across the terminals: about 3.2 Ω for a 4 Ω driver.
+- Polarity: touch a 1.5 V battery to the terminals, + to +. The cone should move
+  outwards.
 
-**Minimum required:**
-- Raspberry Pi Zero 2 W
-- 32GB MicroSD card
-- 2x MAX98357A I2S amplifiers
-- USB Microphone (for voice control)
-- TM1637 4-digit display
-- 3x WS2812B RGB LEDs
-- 3x tactile buttons
-- 5V 3A USB-C power supply
-- Micro-USB OTG adapter (for USB mic)
-- Salvaged speakers from NS-CSPGASP
-- 3D printed enclosure
+## 3. Set up the Raspberry Pi
 
----
+1. With [Raspberry Pi Imager](https://www.raspberrypi.com/software/), write
+   **Raspberry Pi OS Lite (64-bit)**. In the settings, set the hostname
+   (`open-speaker`), your Wi-Fi, a user, SSH and your time zone (the clock uses it).
+2. Boot the Pi and log in: `ssh <user>@open-speaker.local`.
+3. Install:
 
-## Phase 1: Speaker Extraction
+   ```sh
+   sudo apt install -y git
+   git clone -b v2 https://github.com/brewer-michael/ns-cspgasp-rebuild.git
+   sudo ns-cspgasp-rebuild/scripts/install.sh
+   sudo reboot
+   ```
 
-### 1.1 Open the NS-CSPGASP
+   The installer sets up the sound card, I2C and SPI, installs the software into
+   `/opt/open-speaker`, writes `/etc/open-speaker/config.yaml` and a systemd
+   service, and turns off Wi-Fi power saving. It is safe to run again to update.
 
-1. Flip the unit upside down
-2. Remove any visible screws (check under rubber feet)
-3. Use a plastic pry tool to release clips around the seam
-4. Carefully separate the enclosure halves
+## 4. Test on the desk
 
-### 1.2 Remove the Speakers
+Wire everything with jumper wires as in
+[gpio_pinout.md](../hardware/schematics/gpio_pinout.md). Power the Pi through the
+USB-C breakout, not its own micro-USB port, so the amplifiers get their current
+straight from the supply.
 
-1. Locate both speakers (left and right sides)
-2. Note the wire colors and polarity (+ and -)
-3. Disconnect or cut speaker wires from the original board
-4. Remove mounting screws
-5. Gently lift speakers out
+**Sound.** Start with one amplifier and one driver:
 
-### 1.3 Measure and Document
-
-Fill out [hardware/speaker_specs/measurements.md](../hardware/speaker_specs/measurements.md):
-
-1. **Outer diameter**: Measure the mounting flange
-2. **Depth**: Measure from front to back of magnet
-3. **Mounting holes**: Count and measure hole positions
-4. **DC Resistance**: Set multimeter to Ω, measure across terminals
-
-**Expected values:**
-- Diameter: ~52mm
-- Depth: ~20-25mm
-- Impedance: ~3.2Ω DC resistance (4Ω nominal)
-
-### 1.4 Test Speakers
-
-Before proceeding, verify speakers work:
-
-1. Connect to any audio source briefly
-2. Play a test tone
-3. Listen for distortion or rattling
-
----
-
-## Phase 2: Raspberry Pi Setup
-
-### 2.1 Flash the OS
-
-1. Download [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
-2. Select "Raspberry Pi OS Lite (64-bit)"
-3. Click the gear icon for advanced options:
-   - Set hostname: `open-speaker`
-   - Enable SSH
-   - Set username/password
-   - Configure WiFi
-4. Flash to SD card
-
-### 2.2 First Boot Configuration
-
-1. Insert SD card into Pi Zero 2 W
-2. Power on (initial boot takes ~2 minutes)
-3. SSH in: `ssh pi@open-speaker.local`
-
-### 2.3 Audio Configuration
-
-Edit `/boot/config.txt`:
-```bash
-sudo nano /boot/config.txt
+```sh
+aplay -l                                  # the card is "sndrpigooglevoi"
+speaker-test -D default -c 2 -t wav -l 1  # says "front left", "front right"
 ```
 
-Add these lines:
-```ini
-dtparam=audio=off
-dtoverlay=hifiberry-dac
+Add the second amplifier. With the resistor on the right amp's `SD` pin, measure
+`SD` to ground: about 1.0 V (0.77–1.4 V). Then check that each side says its own
+name.
+
+**Microphones.**
+
+```sh
+sudo open-speaker test-mic --seconds 5    # shows the level while you talk
 ```
 
-Reboot:
-```bash
-sudo reboot
+A silent channel usually means a swapped `L/R` pin or a loose `SD` wire.
+
+**Display, LEDs, buttons.** `i2cdetect -y 1` should show the OLED at `3c`. Then
+run the full check:
+
+```sh
+sudo open-speaker doctor
 ```
 
-### 2.4 Install Dependencies
+It checks the sound devices, the microphones, the wake word model, the display,
+the LEDs, the GPIO pins and every server in the configuration.
 
-```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
+## 5. Connect it to Home Assistant and your servers
 
-# Install audio tools
-sudo apt install -y alsa-utils
+Follow [HOME_ASSISTANT.md](HOME_ASSISTANT.md) (token, Assist pipeline). To run
+without Home Assistant, follow [LOCAL_AI.md](LOCAL_AI.md). Then:
 
-# Install Python dependencies
-sudo apt install -y python3-pip python3-dev
-
-# Install GPIO and LED libraries
-sudo pip3 install RPi.GPIO adafruit-circuitpython-neopixel rpi_ws281x
-```
-
----
-
-## Phase 3: Audio Path Testing
-
-### 3.1 Wire First Amplifier
-
-Connect MAX98357A #1 to Pi (use breadboard for testing):
-
-| MAX98357A | Pi Zero 2 W |
-|-----------|-------------|
-| VIN | 5V (Pin 2) |
-| GND | GND (Pin 6) |
-| BCLK | GPIO18 (Pin 12) |
-| LRC | GPIO19 (Pin 35) |
-| DIN | GPIO21 (Pin 40) |
-| SD_MODE | VIN (direct) |
-
-Connect a speaker to SPK+ and SPK-.
-
-### 3.2 Test Audio
-
-```bash
-# List audio devices
-aplay -l
-
-# Play test tone
-speaker-test -c 1 -t sine -f 440
-
-# If no sound, check:
-# - config.txt has the overlay
-# - Wiring is correct
-# - Volume: alsamixer
-```
-
-### 3.3 Add Second Amplifier (Stereo)
-
-Wire MAX98357A #2 identically EXCEPT:
-- **SD_MODE**: Connect to VIN through a **390kΩ resistor**
-
-This selects the right channel.
-
-### 3.4 Test Stereo
-
-```bash
-# Play stereo test (alternates left/right)
-speaker-test -c 2 -t sine
-```
-
----
-
-## Phase 4: Microphone Setup (I2S MEMS)
-
-This project uses internal I2S MEMS microphones for a clean, integrated design matching professional voice assistants.
-
-### 4.1 Wire INMP441 Microphones
-
-Wire both INMP441 modules to share the I2S clock signals with the amplifiers:
-
-| INMP441 Pin | Connect To | Notes |
-|-------------|------------|-------|
-| VDD | 3.3V (Pin 1) | **NOT 5V** - INMP441 is 3.3V only |
-| GND | GND (Pin 9) | |
-| WS | GPIO19 (Pin 35) | Shared with amp LRCLK |
-| SCK | GPIO18 (Pin 12) | Shared with amp BCLK |
-| SD | GPIO20 (Pin 38) | Microphone data output |
-| L/R | See below | Channel selection |
-
-**Channel selection for dual-mic setup:**
-- Mic #1: L/R pin → GND (left channel)
-- Mic #2: L/R pin → 3.3V (right channel)
-
-### 4.2 Physical Mounting
-
-Mount microphones on **top of enclosure** for optimal voice pickup:
-
-1. Drill 2-3mm sound ports in top panel (or use pre-designed holes)
-2. Cover ports with fine mesh to block dust
-3. Mount mic PCB 2-3mm below sound port
-4. Add acoustic isolation gasket between mic PCB and enclosure
-5. Keep mic wiring away from power lines (reduces noise)
-
-**Positioning:**
-```
-         [Top View of Enclosure]
-    +--------------------------------+
-    |    (mic L)          (mic R)    |
-    |       ○                ○       |  ← Sound ports
-    |                                |
-    |   [======DISPLAY======]        |
-    |                                |
-    +--------------------------------+
-```
-
-### 4.3 Configure I2S Input
-
-Edit `/boot/config.txt`:
-```bash
-sudo nano /boot/config.txt
-```
-
-Add the I2S microphone overlay:
-```ini
-# I2S microphone input (in addition to hifiberry-dac for output)
-dtoverlay=googlevoicehat-soundcard
-```
-
-*Note: The googlevoicehat-soundcard overlay supports simultaneous I2S input and output. For custom configurations, you may need a different overlay.*
-
-Reboot:
-```bash
-sudo reboot
-```
-
-### 4.4 Verify Microphone Detection
-
-```bash
-# List recording devices
-arecord -l
-
-# Should show something like:
-# card 0: sndrpigooglevoi [snd_rpi_googlevoicehat_soundcar], device 0: Google voiceHAT SoundCard ...
-```
-
-### 4.5 Test Recording
-
-```bash
-# Record 5 seconds of audio (adjust hw:X,0 based on arecord -l output)
-arecord -D hw:0,0 -c 2 -r 48000 -f S32_LE -d 5 test.wav
-
-# Play it back
-aplay test.wav
-
-# Clean up
-rm test.wav
-```
-
-### 4.6 Configure Default Audio Devices
-
-Create/edit `~/.asoundrc`:
-```bash
-nano ~/.asoundrc
-```
-
-Add:
-```
-pcm.!default {
-    type asym
-    playback.pcm "plughw:0,0"
-    capture.pcm "plughw:0,0"
-}
-```
-
-*Note: With googlevoicehat-soundcard, both playback and capture may be on the same card.*
-
-### 4.7 Troubleshooting I2S Microphones
-
-**No sound captured:**
-1. Check WS and SCK connections (must be shared with amplifiers)
-2. Verify SD pin is connected to GPIO20
-3. Check 3.3V power (NOT 5V)
-4. Verify overlay is loaded: `dmesg | grep -i i2s`
-
-**Only one channel working:**
-1. Check L/R pin connections (GND vs 3.3V)
-2. Both mics need different L/R settings
-
-**Noise/interference:**
-1. Route mic wires away from speaker/power wires
-2. Use shielded wire if needed
-3. Add ferrite bead on mic power line
-
----
-
-## Phase 5: Display and Controls
-
-### 5.1 Wire TM1637 Display
-
-| TM1637 | Pi Zero 2 W |
-|--------|-------------|
-| VCC | 3.3V (Pin 1) or 5V |
-| GND | GND (Pin 9) |
-| CLK | GPIO23 (Pin 16) |
-| DIO | GPIO24 (Pin 18) |
-
-### 5.2 Test Display
-
-```bash
-cd /home/pi/open-speaker/firmware
-python3 display/tm1637_driver.py
-```
-
-Should show test patterns and time.
-
-### 5.3 Wire WS2812B LEDs
-
-| WS2812B | Pi Zero 2 W |
-|---------|-------------|
-| VCC | 5V (Pin 4) |
-| GND | GND (Pin 14) |
-| DIN | GPIO10 (Pin 19) |
-
-If using multiple LEDs, daisy-chain DOUT → DIN.
-
-### 5.4 Test LEDs
-
-```bash
-# May need sudo for PWM access
-sudo python3 display/ws2812_status.py
-```
-
-Should cycle through colors.
-
-### 5.5 Wire Buttons
-
-Each button connects between GPIO and GND:
-
-| Button | GPIO | Pin |
-|--------|------|-----|
-| VOL_UP | GPIO17 | 11 |
-| VOL_DOWN | GPIO27 | 13 |
-| MUTE | GPIO22 | 15 |
-
-Internal pull-ups are enabled in software.
-
-### 5.6 Test Buttons
-
-```bash
-python3 controls/button_handler.py
-```
-
-Press buttons and verify detection.
-
----
-
-## Phase 6: Enclosure Preparation
-
-### 6.1 Update OpenSCAD Parameters
-
-Edit `hardware/enclosure/main_body.scad`:
-
-```openscad
-speaker_outer_diameter = XX;  // Your measurement
-speaker_depth = XX;           // Your measurement
-speaker_mounting_circle = XX; // Your measurement
-```
-
-### 6.2 Generate STL
-
-1. Open in OpenSCAD
-2. Press F6 to render
-3. Export as STL
-
-### 6.3 Print Enclosure
-
-**Recommended settings:**
-- Material: PETG
-- Layer height: 0.2mm
-- Infill: 50%
-- Walls: 4 perimeters
-
-**Print order:**
-1. Main body (~10 hours)
-2. Back cover (~2 hours)
-
-### 6.4 Post-Processing
-
-1. Remove supports
-2. Install M3 heat-set inserts (soldering iron at 220°C)
-3. Test fit all components
-
----
-
-## Phase 7: Final Assembly
-
-### 7.1 Prepare Wiring
-
-Cut wires to appropriate lengths:
-- Power wires: 10cm
-- I2S wires: 8cm
-- Button wires: 15cm (for routing)
-
-Use different colors per the [GPIO pinout](../hardware/schematics/gpio_pinout.md).
-
-### 7.2 Solder Connections
-
-1. **Pi header**: Solder 2x20 header if not pre-installed
-2. **Amplifiers**: Solder pin headers or direct wires
-3. **Display**: Solder pin headers or direct wires
-4. **Buttons**: Solder wires with heat-shrink
-
-### 7.3 Mount Electronics
-
-1. Attach Pi Zero to standoffs in enclosure
-2. Mount amplifiers near speakers
-3. Mount display in front panel cutout
-4. Install buttons in front panel holes
-5. Install RGB LEDs
-
-### 7.4 Install Speakers
-
-1. Cut silicone gasket to fit groove
-2. Place gasket in groove
-3. Position speaker
-4. Secure with screws
-5. Connect speaker wires to amplifiers
-
-### 7.5 Acoustic Treatment
-
-1. Line speaker chambers with acoustic foam
-2. Add polyfill loosely (don't overpack)
-3. Ensure no foam blocks ventilation
-
-### 7.6 Close Enclosure
-
-1. Route all wires neatly
-2. Verify no pinched wires
-3. Attach back cover with M3 screws
-
----
-
-## Phase 8: Software Installation
-
-### 8.1 Copy Firmware
-
-```bash
-# On your PC, SCP the firmware folder
-scp -r firmware/ pi@open-speaker.local:/home/pi/open-speaker/
-```
-
-### 8.2 Install Service
-
-```bash
-# On the Pi
-sudo cp /home/pi/open-speaker/config/systemd/open-speaker.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable open-speaker
+```sh
+sudo open-speaker doctor                  # everything OK?
 sudo systemctl start open-speaker
+journalctl -u open-speaker -f             # watch the log
 ```
 
-### 8.3 Verify Operation
+Say **"Okay Nabu"**, wait for the chime, then try "what time is it?" or "set a
+timer for one minute".
 
-```bash
-# Check service status
-sudo systemctl status open-speaker
+## 6. Print the enclosure
 
-# View logs
-journalctl -u open-speaker -f
-```
+Enter your driver measurements, export and print:
+[hardware/enclosure/README.md](../hardware/enclosure/README.md). Everything prints
+in PETG without supports.
 
----
+## 7. Build it
+
+Follow the assembly order in the
+[enclosure README](../hardware/enclosure/README.md#assembly). A few tips:
+
+- Make the wiring harness before you start: the Pi sits on the deck at the
+  bottom of the head. The display (front), buttons and microphones (top plate),
+  the mute button and USB-C (back panel) need about 12–15 cm of wire each.
+  Female jumper housings on the Pi's header make the top plate and back panel
+  removable.
+- Seal the chamber well: foam tape on the deck ledge and the back frame, and hot
+  glue in the deck's wire hole. Leaks make the bass weak and can whistle at the
+  port.
+- Test again (`sudo open-speaker doctor`) before closing the back panel.
+
+## Using it
+
+| | |
+|---|---|
+| **Wake word** | "Okay Nabu" (change it in the configuration) |
+| **Action button** (top, middle) | Tap: talk, or stop whatever is happening. When an alarm rings: tap to snooze, hold to turn it off |
+| **− / +** | Volume; hold to keep changing |
+| **Mute** (back) | Microphone off and on. The light turns dim red and the display says "mic off" |
+
+Things the speaker handles itself, even when your server is down:
+
+- "Set a timer for 10 minutes", "set a pasta timer for 8 minutes", "how much time
+  is left?", "cancel the timer"
+- "Wake me up at 6:30 on weekdays", "set an alarm for 7 am tomorrow", "what alarms
+  do I have?", "cancel my alarm"
+- "Stop", "snooze", "volume up", "set the volume to 4"
+
+Everything else goes to Home Assistant or your language model: "turn on the
+kitchen lights", "is the front door locked?", "how far away is the moon?".
+
+**Display.** It always shows the time and the temperature. The volume, "mic off"
+or a timer's countdown take the temperature's place for a moment. "AL" means an
+alarm is set. It dims from 22:00 to 07:00.
+
+**Light.** Dim blue: ready. Green: listening. Pulsing cyan: thinking. Pulsing blue: speaking.
+Pulsing orange: alarm or timer. Dim red: microphone muted. Red: error.
 
 ## Troubleshooting
 
-### No Audio
-
-1. Check `aplay -l` shows the I2S device
-2. Verify `/boot/config.txt` settings
-3. Check wiring (especially BCLK, LRC, DIN)
-4. Try: `alsamixer` to unmute/raise volume
-
-### Display Not Working
-
-1. Check CLK and DIO wiring
-2. Try swapping CLK/DIO (easy to mix up)
-3. Test with different brightness levels
-
-### LEDs Not Working
-
-1. Must run as `sudo` (PWM requires root)
-2. Check data pin connection
-3. Verify 5V power to LEDs
-
-### Buttons Not Responding
-
-1. Check GPIO numbers match code
-2. Verify buttons connect GPIO to GND
-3. Test with multimeter (continuity when pressed)
-
----
-
-## Next Steps
-
-After basic assembly:
-
-1. **Spotify Connect**: Install `spotifyd`
-2. **Voice Control**: Add USB microphone and Wyoming Satellite
-3. **Home Assistant**: Configure integration
-4. **Custom Wake Word**: Train with Porcupine
-
-See the main [README](../README.md) for advanced configuration.
+| Problem | Check |
+|---|---|
+| No sound card in `aplay -l` | Reboot after installing; `dtoverlay=googlevoicehat-soundcard` in `/boot/firmware/config.txt` |
+| Both sides play the same, or one is silent | The `SD` voltages (step 4); left `SD` straight to 5 V |
+| Crackles at high volume | Supply too weak, or the amps powered through the Pi's header |
+| Microphones silent | `L/R` pins (left to GND, right to 3.3 V); `SD` of both mics to GPIO20 |
+| Wake word never triggers | `sudo open-speaker test-mic`: the level should rise clearly when you talk; try `audio.input.gain_db: 10` |
+| Wake word triggers by itself | Set `wake.threshold` a little higher |
+| OLED blank | `i2cdetect -y 1` shows 3c or 3d? Set `display.oled.address`; the 0.96" type needs `driver: ssd1306` |
+| LEDs flicker or show wrong colours | `core_freq=250` in config.txt; the diode or level shifter from the wiring guide |
+| "Authentication failed" | The token in `/etc/open-speaker/secrets.env`, then `sudo systemctl restart open-speaker` |
+| Slow answers | See "Making it quick" in [LOCAL_AI.md](LOCAL_AI.md#making-it-quick) |

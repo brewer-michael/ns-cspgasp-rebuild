@@ -1,0 +1,17 @@
+# Run the language model on an NVIDIA GPU (needs the NVIDIA Container Toolkit):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+#
+# The language model gains the most from a GPU; Whisper base-int8 is quick enough
+# on a recent x86 CPU for short commands. For Whisper on the GPU as well, use the
+# lscr.io/linuxserver/faster-whisper:gpu image.
+
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

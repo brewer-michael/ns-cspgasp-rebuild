@@ -29,11 +29,17 @@ mkdir -p "$out"
 
 # grille and clamp_ring: print two of each
 parts=(body deck top_plate back_panel grille clamp_ring caps diffuser port_plug window)
+log="$(mktemp)"
+trap 'rm -f "$log"' EXIT
 for part in "${parts[@]}"; do
     echo "== $part"
-    openscad -o "$out/$part.stl" -D "part=\"$part\"" ${args[@]+"${args[@]}"} "$scad" 2>&1 \
-        | grep -E "ECHO|WARNING|ERROR" || true
+    if ! openscad -o "$out/$part.stl" -D "part=\"$part\"" ${args[@]+"${args[@]}"} "$scad" >"$log" 2>&1; then
+        grep -E "ERROR|WARNING" "$log" >&2 || cat "$log" >&2
+        exit 1
+    fi
+    grep -E "WARNING" "$log" || true
 done
+grep -E "^ECHO" "$log" | sed 's/^ECHO: "\(.*\)"$/\1/'
 echo "STL files in $out"
 
 $images || exit 0

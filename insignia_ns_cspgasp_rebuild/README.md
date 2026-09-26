@@ -1,3 +1,11 @@
+> **Archived.** This was the first plan: keep the Insignia case and drive its
+> original display board from a Pi through an adapter for the ribbon cable. The
+> main board turned out to be locked down, and splicing the ribbon bricked the
+> unit. The project continues with new electronics and a new enclosure; see the
+> [main README](../README.md). The bill of materials, the test bench for probing
+> the ribbon (`BOM_POC_BENCH.md`), the mounting bracket and the probe scripts'
+> `requirements.txt` from that plan are kept here for reference.
+
 # Insignia NS-CSPGASP Rebuild (Condor Board Replacement)
 
 This project documents the process of replacing the "brain" (Main Logic Board) of the **Insignia Voice Smart Bluetooth Speaker (NS-CSPGASP)** with a **Raspberry Pi Zero 2 W**.

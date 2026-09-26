@@ -1,70 +1,33 @@
-# /boot/config.txt additions for Open Hardware Smart Speaker
+# Open Speaker: lines for the Raspberry Pi boot configuration
 #
-# Add these lines to your existing /boot/config.txt
-# (or /boot/firmware/config.txt on newer Raspberry Pi OS)
-#
-# After editing, reboot for changes to take effect.
+# scripts/install.sh adds these to /boot/firmware/config.txt (/boot/config.txt on
+# older systems) between "# >>> open-speaker" and "# <<< open-speaker" markers.
+# To do it by hand, add them at the end and reboot.
 
-# =============================================================================
-# AUDIO CONFIGURATION
-# =============================================================================
+[all]
 
-# Disable the default onboard audio (we use I2S instead)
+# The onboard audio would claim the first sound card. Also comment out any
+# existing "dtparam=audio=on" line.
 dtparam=audio=off
 
-# Enable I2S audio output for MAX98357A DAC/Amp
-# This overlay works with HiFiBerry-compatible I2S DACs
-dtoverlay=hifiberry-dac
+# One I2S sound card for both directions: playback to the two MAX98357A
+# amplifiers and capture from the two INMP441 microphones, at the same time.
+# (hifiberry-dac, from the earlier plan, is playback only.)
+# The overlay claims GPIO16 for a shutdown line: leave GPIO16 unconnected.
+dtoverlay=googlevoicehat-soundcard
 
-# =============================================================================
-# MICROPHONE CONFIGURATION (I2S MEMS - INMP441)
-# =============================================================================
+# OLED display on I2C (GPIO2 SDA, GPIO3 SCL); 400 kHz makes updates snappier
+dtparam=i2c_arm=on
+dtparam=i2c_arm_baudrate=400000
 
-# Enable simultaneous I2S input and output
-# The googlevoicehat-soundcard overlay supports both directions
-# Note: This replaces hifiberry-dac if you need both input and output
-# Comment out hifiberry-dac above and uncomment this instead:
-# dtoverlay=googlevoicehat-soundcard
+# WS2812B status LEDs are driven from SPI MOSI (GPIO10), which needs no root
+# access. The SPI clock comes from the core clock, so keep that fixed or the
+# LED colours glitch when the CPU speed changes.
+dtparam=spi=on
+core_freq=250
 
-# Alternative: Use a simple I2S input overlay (output only from hifiberry-dac)
-# You may need to use a custom overlay for true full-duplex I2S
-# See: https://github.com/raspberrypi/linux/issues for custom overlays
-
-# Optional: Improve audio timing (reduces pops/clicks)
-# Uncomment if experiencing audio glitches
-# audio_pwm_mode=2
-
-# =============================================================================
-# GPIO CONFIGURATION
-# =============================================================================
-
-# No special GPIO configuration needed.
-# The pins used (10, 12, 17, 18, 19, 21, 22, 23, 24, 27) are standard GPIO.
-
-# =============================================================================
-# PERFORMANCE
-# =============================================================================
-
-# Optional: Disable Bluetooth to free up resources
-# Uncomment if not using Bluetooth
-# dtoverlay=disable-bt
-
-# Optional: Disable WiFi power management (improves latency)
-# Add to /etc/rc.local instead:
-# iwconfig wlan0 power off
-
-# =============================================================================
-# NOTES
-# =============================================================================
-#
-# I2S Pinout (fixed by hardware):
-#   GPIO18 = BCLK (Bit Clock) - shared with mic SCK
-#   GPIO19 = LRCLK (Left/Right Clock) - shared with mic WS
-#   GPIO20 = DIN (Data In from microphones)
-#   GPIO21 = DOUT (Data Out to amplifiers)
-#
-# After adding these settings:
-# 1. sudo reboot
-# 2. Test audio output: speaker-test -c 2 -t sine
-# 3. Test audio input: arecord -d 5 test.wav && aplay test.wav
-# 4. Check audio devices: aplay -l && arecord -l
+# Pins in use (BCM numbering), see hardware/schematics/gpio_pinout.md:
+#   18 I2S BCLK   19 I2S LRCLK   20 I2S DIN (mics)   21 I2S DOUT (amps)
+#   2/3 I2C (OLED)   10 SPI MOSI (LEDs)   12 volume LED
+#   17 volume up   27 volume down   22 mute   5 action
+#   (23/24 TM1637 if you use that display instead of the OLED)

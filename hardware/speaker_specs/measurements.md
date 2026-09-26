@@ -31,8 +31,10 @@
 
 | Measurement | Left Speaker | Right Speaker |
 |-------------|--------------|---------------|
-| Outer Diameter | ______ mm | ______ mm |
-| Cone Diameter (visible) | ______ mm | ______ mm |
+| Outer Diameter (frame / flange) | ______ mm | ______ mm |
+| Cone Diameter (cone + rubber surround) | ______ mm | ______ mm |
+| Widest part behind the flange (basket) | ______ mm | ______ mm |
+| Flange thickness | ______ mm | ______ mm |
 
 ### Depth (Front to Back)
 
@@ -65,7 +67,7 @@
 
 | Measurement | Left Speaker | Right Speaker |
 |-------------|--------------|---------------|
-| # of Mounting Holes | | |
+| # of Mounting Holes (0 if none) | | |
 | Hole Diameter | ______ mm | ______ mm |
 | Hole Pattern (circle dia.) | ______ mm | ______ mm |
 | Screw Size (if known) | M____ | M____ |
@@ -129,15 +131,22 @@ ref-images/speaker_back.jpg
 
 ## Enclosure Design Parameters
 
-**Copy these values to the OpenSCAD file:**
+**Copy these values to `hardware/enclosure/main_body.scad`** (or pass them to
+`export.sh` with `-D name=value`):
 
 ```openscad
-// Speaker parameters from measurements
-speaker_outer_diameter = ______;  // mm
-speaker_depth = ______;           // mm
-speaker_mounting_holes = ______;  // mm (circle diameter)
-speaker_hole_diameter = ______;   // mm
-speaker_impedance = ______;       // ohms (4 or 8)
+speaker_frame_diameter = ______;     // outer diameter of the frame / flange
+speaker_cone_diameter = ______;      // cone + surround
+speaker_basket_diameter = ______;    // widest part behind the flange
+speaker_flange_thickness = ______;
+speaker_depth = ______;              // front of the flange to the back of the magnet
+speaker_magnet_diameter = ______;
+
+// Only if the frame has screw holes and you want to use them instead of the
+// clamp ring:
+// speaker_mount = "holes";
+// speaker_hole_circle = ______;     // diameter of the circle through the holes
+// speaker_hole_count = ______;
 ```
 
 ---

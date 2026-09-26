@@ -18,6 +18,11 @@ Environment=PYTHONUNBUFFERED=1
 # Timers and alarms are kept here
 StateDirectory=open-speaker
 StateDirectoryMode=0750
+WorkingDirectory=/var/lib/open-speaker
+# lgpio (behind gpiozero) creates a notification pipe in LG_WD, or else in the
+# working directory
+RuntimeDirectory=open-speaker
+Environment=LG_WD=/run/open-speaker
 
 # Audio should not stutter when something else is busy
 Nice=-5

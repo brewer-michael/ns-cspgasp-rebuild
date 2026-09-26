@@ -1,245 +1,136 @@
-# GPIO Pinout Reference
+# Wiring
 
-**Raspberry Pi Zero 2 W GPIO Allocation**
-**Project:** Open Hardware Smart Speaker
+Raspberry Pi Zero 2 W, BCM GPIO numbers. The pins match the defaults in
+`/etc/open-speaker/config.yaml`; buttons and the display pins can be changed
+there, and `open-speaker check-config` refuses conflicting pins.
 
----
+## Pin table
 
-## Pin Assignment Table
-
-| GPIO | Physical Pin | Function | Component | Wire Color (Suggested) |
-|------|:------------:|----------|-----------|------------------------|
-| **Power** |
-| 5V | 2, 4 | Power Rail | Pi, Amps, Display | Red |
-| 3.3V | 1, 17 | Logic Ref | (Reserved) | Orange |
-| GND | 6, 9, 14, 20, 25, 30, 34, 39 | Ground | All | Black |
-| **I2S Audio** |
-| GPIO18 | 12 | BCLK | MAX98357A (both) | Blue |
-| GPIO19 | 35 | LRCLK/FS | MAX98357A (both) | Green |
-| GPIO21 | 40 | DOUT | MAX98357A (both) | Yellow |
-| **TM1637 Display** |
-| GPIO23 | 16 | CLK | TM1637 | Purple |
-| GPIO24 | 18 | DIO | TM1637 | Gray |
-| **WS2812B Status LED** |
-| GPIO10 | 19 | DATA | WS2812B strip | White |
-| **Volume LED** |
-| GPIO12 | 32 | PWM | Single LED | Brown |
-| **Buttons** |
-| GPIO17 | 11 | VOL_UP | Tactile button | - |
-| GPIO27 | 13 | VOL_DOWN | Tactile button | - |
-| GPIO22 | 15 | MUTE | Tactile button | - |
-| **I2S Microphone (Internal)** |
-| GPIO18 | 12 | I2S_SCK | INMP441 (shared with amp BCLK) | Blue |
-| GPIO19 | 35 | I2S_WS | INMP441 (shared with amp LRCLK) | Green |
-| GPIO20 | 38 | I2S_DIN | INMP441 Data In | Orange |
-| **Reserved for Future** |
-| GPIO2 | 3 | SDA | I2C expansion | - |
-| GPIO3 | 5 | SCL | I2C expansion | - |
-
----
-
-## Visual Pinout (Pi Zero 2 W Header)
+| GPIO | Pin | Function | Connects to |
+|---|:-:|---|---|
+| 5V | 2, 4 | Power in | USB-C breakout VBUS (5 V) |
+| 3V3 | 1, 17 | 3.3 V out | Microphones, OLED |
+| GND | 6, 9, 14, 20, 25, 30, 34, 39 | Ground | Everything |
+| GPIO18 | 12 | I2S bit clock | Both amps `BCLK`, both mics `SCK` |
+| GPIO19 | 35 | I2S frame clock | Both amps `LRC`, both mics `WS` |
+| GPIO21 | 40 | I2S data out | Both amps `DIN` |
+| GPIO20 | 38 | I2S data in | Both mics `SD` (shared) |
+| GPIO2 | 3 | I2C SDA | OLED `SDA` |
+| GPIO3 | 5 | I2C SCL | OLED `SCL` |
+| GPIO10 | 19 | SPI MOSI | WS2812B `DIN` (status LEDs) |
+| GPIO17 | 11 | Button | Volume up (other side to GND) |
+| GPIO27 | 13 | Button | Volume down |
+| GPIO5 | 29 | Button | Action: talk / stop / snooze |
+| GPIO22 | 15 | Button | Microphone mute (back panel) |
+| GPIO12 | 32 | PWM | Volume LED through 220 Ω (optional) |
+| GPIO16 | 36 | **Reserved** | Claimed by the sound card overlay: leave unconnected |
+| GPIO23 / 24 | 16 / 18 | TM1637 `CLK` / `DIO` | Only if you use the TM1637 display instead of the OLED |
 
 ```
-                    Pi Zero 2 W
-                 (Component Side Up)
+                 Pi Zero 2 W header (component side up, pin 1 top left)
 
-         3.3V [1]  [2] 5V ◄── Power In
-    (I2C) SDA [3]  [4] 5V
-    (I2C) SCL [5]  [6] GND
-              [7]  [8]
-          GND [9]  [10]
-   VOL_UP ──► [11] [12] ◄── I2S BCLK
- VOL_DOWN ──► [13] [14] GND
-    MUTE ──► [15] [16] ◄── TM1637 CLK
-         3.3V [17] [18] ◄── TM1637 DIO
-  WS2812B ──► [19] [20] GND
-              [21] [22]
-              [23] [24]
-          GND [25] [26]
-              [27] [28]
-              [29] [30] GND
-              [31] [32] ◄── Volume LED (PWM)
-              [33] [34] GND
-  I2S LRCLK ► [35] [36]
-              [37] [38]
-          GND [39] [40] ◄── I2S DOUT
+        3V3 mics,OLED  [ 1] [ 2]  5V in (USB-C)
+             OLED SDA  [ 3] [ 4]  5V
+             OLED SCL  [ 5] [ 6]  GND
+                       [ 7] [ 8]
+                  GND  [ 9] [10]
+       volume up (17)  [11] [12]  I2S BCLK (18)
+     volume down (27)  [13] [14]  GND
+            mute (22)  [15] [16]  (TM1637 CLK, 23)
+                  3V3  [17] [18]  (TM1637 DIO, 24)
+    LEDs, SPI MOSI(10) [19] [20]  GND
+                       [21] [22]
+                       [23] [24]
+                  GND  [25] [26]
+                       [27] [28]
+           action (5)  [29] [30]  GND
+                       [31] [32]  volume LED (12)
+                       [33] [34]  GND
+      I2S LRCLK (19)   [35] [36]  reserved (16)
+                       [37] [38]  I2S DIN from mics (20)
+                  GND  [39] [40]  I2S DOUT to amps (21)
 ```
 
----
+Buttons connect their GPIO to GND when pressed; the Pi's internal pull-ups are
+used, so no resistors are needed.
 
-## MAX98357A Wiring (Stereo Configuration)
+## Amplifiers (2 × MAX98357A)
 
-Both amplifiers receive the **same I2S signals**. Channel selection is via SD_MODE pin.
+Both amps get the same I2S signals. The voltage on each amp's `SD` pin picks its
+channel:
 
-### Left Channel Amp
+| `SD` voltage | Output |
+|---|---|
+| above 1.4 V | left channel |
+| 0.77 – 1.4 V | right channel |
+| 0.16 – 0.77 V | (left + right) / 2 |
+| below 0.16 V | shut down |
 
-| MAX98357A Pin | Connect To |
-|---------------|------------|
-| VIN | 5V Rail |
-| GND | Ground |
-| BCLK | GPIO18 (Pin 12) |
-| LRC | GPIO19 (Pin 35) |
-| DIN | GPIO21 (Pin 40) |
-| GAIN | No connection (default 9dB) |
-| SD_MODE | **Direct to VIN (5V)** |
-| SPK+ | Left Speaker + |
-| SPK- | Left Speaker - |
+The chip pulls `SD` down with 100 kΩ inside.
 
-### Right Channel Amp
+| Amp pin | Left amp | Right amp |
+|---|---|---|
+| `VIN` | 5 V | 5 V |
+| `GND` | GND | GND |
+| `BCLK` / `LRC` / `DIN` | GPIO18 / 19 / 21 | GPIO18 / 19 / 21 |
+| `GAIN` | not connected (9 dB) | not connected (9 dB) |
+| `SD` | straight to `VIN` | resistor to `VIN`, see below |
+| `+` / `−` | left driver | right driver |
 
-| MAX98357A Pin | Connect To |
-|---------------|------------|
-| VIN | 5V Rail |
-| GND | Ground |
-| BCLK | GPIO18 (Pin 12) |
-| LRC | GPIO19 (Pin 35) |
-| DIN | GPIO21 (Pin 40) |
-| GAIN | No connection (default 9dB) |
-| SD_MODE | **VIN via 390kΩ resistor** |
-| SPK+ | Right Speaker + |
-| SPK- | Right Speaker - |
+**The right amp's resistor depends on the board.** Adafruit's breakout (3006)
+already has 1 MΩ from `SD` to `VIN`. Use **680 kΩ** there, in parallel with it,
+for about 1.0 V. On boards without that pull-up, use **390 kΩ**. Measure `SD` to
+GND with the amp powered: you want about 1.0 V. Then play `speaker-test -D default
+-c 2 -t wav` and check that "front left" and "front right" come from the right
+sides.
 
-### SD_MODE Channel Selection
+Never connect a speaker terminal to ground: the outputs are bridged.
 
-| SD_MODE Connection | Output |
-|--------------------|--------|
-| GND | Shutdown (mute) |
-| Direct to VIN | Left channel |
-| VIN via 390kΩ | Right channel |
-| No connection | Mono (L+R mix) |
+## Microphones (2 × INMP441)
 
----
+| Mic pin | Left mic | Right mic |
+|---|---|---|
+| `VDD` | 3.3 V | 3.3 V |
+| `GND` | GND | GND |
+| `SCK` | GPIO18 | GPIO18 |
+| `WS` | GPIO19 | GPIO19 |
+| `SD` | GPIO20 | GPIO20 (shared) |
+| `L/R` | GND | 3.3 V |
 
-## TM1637 Display Wiring
+Each mic drives `SD` only during its own half of the frame, so the two share one
+wire. The sound card records both as one stereo stream. The speaker mixes them
+(`audio.input.channel: mix`) or uses one.
 
-| TM1637 Pin | Connect To |
-|------------|------------|
-| CLK | GPIO23 (Pin 16) |
-| DIO | GPIO24 (Pin 18) |
-| VCC | 5V (or 3.3V) |
-| GND | Ground |
+## Display
 
-*Note: TM1637 is 5V tolerant but works at 3.3V logic levels.*
+**1.3" OLED (SH1106, I2C, default).** `VCC` to 3.3 V, `GND`, `SDA` to GPIO2,
+`SCL` to GPIO3. Its address is usually 0x3C; check with `i2cdetect -y 1`. The
+0.96" SSD1306 and 2.42" SSD1309 modules wire the same way
+(`display.oled.driver`). The 2.42" boards often come set up for SPI and need
+resistors moved for I2C: see the seller's notes.
 
----
+**TM1637 4-digit display (alternative).** `CLK` to GPIO23, `DIO` to GPIO24,
+`VCC` to **3.3 V only**. These modules pull their data lines up to their own
+supply, and the Pi's pins are not 5 V tolerant.
 
-## WS2812B RGB LED Wiring
+## Status LEDs (WS2812B)
 
-| WS2812B Pin | Connect To |
-|-------------|------------|
-| DIN | GPIO10 (Pin 19) |
-| VCC | 5V Rail |
-| GND | Ground |
+`DIN` to GPIO10 (SPI MOSI), `5V` and `GND`, three LEDs from a 60 LED/m strip. The
+Pi's 3.3 V signal is below the WS2812B's specified input level at 5 V. Short
+wires usually work anyway. If the colours flicker, feed the strip's 5 V through a
+1N4001 diode (about 4.3 V), or add a 74AHCT125 level shifter.
 
-*Note: For long strips (>8 LEDs), add a 300-500Ω resistor on the data line and a 1000µF capacitor across power.*
-
----
-
-## Button Wiring
-
-Buttons connect GPIO to GND when pressed. Use internal pull-ups (enabled in software).
+## Power
 
 ```
-GPIO Pin ──┬── Button ──── GND
-           │
-         (Internal Pull-up enabled)
+USB-C breakout VBUS (5 V, 3 A supply)
+ ├── Pi Zero 2 W, header pin 2 or 4 ........ up to ~0.5 A
+ ├── left amp VIN ........................... up to ~0.7 A at full volume
+ ├── right amp VIN .......................... up to ~0.7 A at full volume
+ └── WS2812B strip .......................... up to 60 mA per LED at full white
+Pi 3.3 V pin ── mics, OLED ................. ~25 mA
 ```
 
-| Function | GPIO | Physical Pin |
-|----------|------|:------------:|
-| Volume Up | GPIO17 | 11 |
-| Volume Down | GPIO27 | 13 |
-| Mute | GPIO22 | 15 |
-
----
-
-## Power Distribution
-
-```
-USB-C 5V Input (3A capable)
-    │
-    ├── Pi Zero 2 W (Pin 2 or 4) ─────── ~300mA typical
-    │
-    ├── MAX98357A #1 (VIN) ───────────── ~200mA @ load
-    │
-    ├── MAX98357A #2 (VIN) ───────────── ~200mA @ load
-    │
-    ├── TM1637 Display (VCC) ─────────── ~20mA
-    │
-    ├── WS2812B LEDs (VCC) ───────────── ~60mA per LED
-    │
-    └── Volume LED (via 220Ω) ────────── ~10mA
-
-Total typical: ~800-900mA
-Peak (loud audio): ~1.5A
-```
-
-**Important:** All grounds must be connected together (star ground at power input preferred).
-
----
-
-## Microphone Options
-
-### Option A: USB Microphone (Recommended)
-
-Simply plug into the Pi Zero 2 W's USB port (via micro-USB OTG adapter).
-
-**Recommended models:**
-- PlayStation Eye camera (~$8) - 4-mic array
-- ReSpeaker USB Mic Array v2.0 (~$25) - 4-mic array with LEDs
-- Any USB conference microphone
-
-**Pros:** Plug-and-play, no GPIO wiring, good echo cancellation with multi-mic arrays
-**Cons:** Uses USB port, may need powered hub if also using other USB devices
-
-### Option B: I2S MEMS Microphone (Advanced)
-
-Uses INMP441 or SPH0645 I2S microphone modules.
-
-| INMP441 Pin | Connect To |
-|-------------|------------|
-| VDD | 3.3V |
-| GND | Ground |
-| WS | GPIO19 (shared with amp LRCLK) |
-| SCK | GPIO18 (shared with amp BCLK) |
-| SD | GPIO20 (Pin 38) |
-| L/R | GND (left channel) or 3.3V (right) |
-
-**Pros:** Cleaner integration, no USB port used, lower latency
-**Cons:** More complex wiring, requires I2S input configuration
-
-**Note:** I2S input requires additional `/boot/config.txt` overlay:
-```ini
-dtoverlay=googlevoicehat-soundcard
-# or use a custom overlay for simultaneous I2S in/out
-```
-
----
-
-## Software Configuration
-
-### /boot/config.txt additions
-
-```ini
-# Disable onboard audio (uses I2S instead)
-dtparam=audio=off
-
-# Enable I2S output for MAX98357A
-dtoverlay=hifiberry-dac
-```
-
-### GPIO Setup (Python)
-
-```python
-import RPi.GPIO as GPIO
-
-# Button pins with internal pull-ups
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # VOL_UP
-GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # VOL_DOWN
-GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # MUTE
-
-# Volume LED (PWM capable)
-GPIO.setup(12, GPIO.OUT)
-```
+Take each amp's power straight from the USB-C breakout, not through the Pi's
+header, and join all grounds at the breakout. Use 22 AWG for 5 V and ground to the
+amps; 26–28 AWG silicone wire is fine for signals.

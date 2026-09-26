@@ -1,172 +1,57 @@
-# Bill of Materials: Open Hardware Smart Speaker
+# Bill of materials
 
-**Project:** NS-CSPGASP Open Rebuild
-**Version:** 2.0 (Open Hardware Pivot)
-**Status:** Ready to Order
+Everything except the two drivers is new, off-the-shelf and replaceable. Prices
+are rough US retail; generic parts from AliExpress cost less.
 
-## Overview
+## Electronics
 
-This BOM covers the fully open hardware design that replaces the proprietary Insignia NS-CSPGASP internals. Only the original speakers are reused.
+| Part | Qty | Notes | ≈ USD |
+|---|:-:|---|--:|
+| Raspberry Pi Zero 2 W | 1 | The "WH" version comes with the header soldered | 15 |
+| microSD card, 16–32 GB, A1 | 1 | Raspberry Pi OS Lite, 64-bit | 7 |
+| MAX98357A I2S amplifier | 2 | [Adafruit 3006](https://www.adafruit.com/product/3006) or generic modules; 3 W into 4 Ω each | 12 |
+| INMP441 I2S microphone module | 2 | 14 × 14 mm boards | 8 |
+| USB-C breakout | 1 | [Adafruit 4090](https://www.adafruit.com/product/4090) (20.4 × 14.2 mm) or similar | 3 |
+| USB-C power supply, 5 V 3 A | 1 | The official Raspberry Pi 15 W supply is ideal | 10 |
+| Resistor for the right amp's `SD` pin | 1 | 680 kΩ for Adafruit boards, 390 kΩ for boards without a pull-up ([why](../hardware/schematics/gpio_pinout.md#amplifiers-2--max98357a)) | 0.10 |
+| **Display**: 1.3" 128 × 64 I2C OLED, SH1106 | 1 | Yellow looks like the original's amber digits. Alternatives: 2.42" SSD1309 (bigger window) or a TM1637 4-digit display | 8 |
+| WS2812B LED strip, 60 LED/m, 10 mm, non-waterproof | 3 LEDs | The status light in the waist | 3 |
+| 6 × 6 × 5 mm tactile switches, through-hole | 4 | Volume up, volume down, action, microphone mute | 2 |
+| Perfboard, 2.54 mm pitch | small piece | Holds the switches | 1 |
+| 5 mm LED + 220 Ω resistor | 1 | Optional volume LED; the enclosure has no hole for it by default | 0.50 |
+| 1N4001 diode | 1 | Optional, only if the LEDs flicker ([wiring](../hardware/schematics/gpio_pinout.md#status-leds-ws2812b)) | 0.10 |
+| Silicone wire, 26 AWG and 22 AWG | | Signals and 5 V | 8 |
 
----
+## Enclosure
 
-## 1. Core Electronics (~$45)
+See [hardware/enclosure/README.md](../hardware/enclosure/README.md) for what each
+part is for.
 
-| Component | Qty | Specifications | Recommended Sources | Est. Cost |
-|-----------|:---:|----------------|---------------------|----------:|
-| **Raspberry Pi Zero 2 W** | 1 | Quad-core, WiFi, BT | [Adafruit 5291](https://www.adafruit.com/product/5291), [Pi Hut](https://thepihut.com/products/raspberry-pi-zero-2-w) | $15.00 |
-| **MicroSD Card** | 1 | 32GB, Class 10/A1 | SanDisk Ultra, Samsung EVO | $7.00 |
-| **MAX98357A I2S Amp** | 2 | 3W Class-D, I2S input | [Adafruit 3006](https://www.adafruit.com/product/3006), Amazon packs | $12.00 |
-| **USB-C Breakout** | 1 | Power input | [Adafruit 4090](https://www.adafruit.com/product/4090) | $3.00 |
-| **5V 3A Power Supply** | 1 | USB-C or barrel | Amazon generic, Mean Well | $8.00 |
-| **390kΩ Resistor** | 1 | 1/4W through-hole | Any supplier | $0.10 |
+| Part | Qty | ≈ USD |
+|---|:-:|--:|
+| PETG filament | ~450 g, plus a little white or natural for the light diffuser | 10 |
+| Smoked grey acrylic, 2 mm | 51.5 × 29.5 mm window | 3 |
+| M3 brass heat-set inserts (4.0 mm hole) | 6 | 3 |
+| M3 × 8 countersunk screws | 14 | 2 |
+| M3 × 10 countersunk screws | 4 | 1 |
+| M2.5 × 6 pan head screws | 4 | 1 |
+| M2 × 6 self-tapping screws | 4 | 1 |
+| Closed-cell foam tape, 1 mm × 6 mm | ~0.7 m | 5 |
+| Rubber bumpers, 10 mm | 4 | 2 |
+| Polyester fibre fill | a handful | 1 |
 
----
+## From the original speaker
 
-## 2. Voice Input (~$8-15)
+| Part | Qty | Notes |
+|---|:-:|---|
+| Full-range drivers, ~52 mm, 4 Ω | 2 | Measure them first: [measurements.md](../hardware/speaker_specs/measurements.md) |
+| Passive radiator | 0–1 | Only for `bass_mode = "passive_radiator"` |
 
-Internal microphone for clean, integrated design matching the original product.
+**Total: about $110** for the speaker. You also need an always-on machine on your
+network for speech recognition and the language model. Home Assistant's own box is
+enough for Speech-to-Phrase and Piper. See [LOCAL_AI.md](LOCAL_AI.md).
 
-### Recommended: I2S MEMS Microphone (Internal Mount)
+## Tools
 
-| Component | Qty | Specifications | Recommended Sources | Est. Cost |
-|-----------|:---:|----------------|---------------------|----------:|
-| **INMP441 I2S Mic** | 2 | I2S digital, 24-bit, -26dB sensitivity | [Amazon](https://www.amazon.com/s?k=INMP441), AliExpress | $8.00 |
-
-**Why 2 microphones:**
-- Dual-mic allows for beamforming (directional pickup)
-- Better noise rejection and echo cancellation
-- Matches professional voice assistant designs
-
-### Alternative: SPH0645 I2S Microphone
-
-| Component | Qty | Specifications | Recommended Sources | Est. Cost |
-|-----------|:---:|----------------|---------------------|----------:|
-| **SPH0645LM4H** | 2 | I2S digital, better SNR than INMP441 | [Adafruit 3421](https://www.adafruit.com/product/3421) | $12.00 |
-
-### Acoustic Considerations for Internal Mounting
-
-- Mount mics on **top of enclosure** (away from speakers)
-- Use **small sound ports** (2-3mm holes) with mesh covering
-- Add **acoustic isolation gasket** between mic PCB and enclosure
-- Keep mic wiring away from power lines to reduce noise
-
----
-
-## 3. Display & Status LEDs (~$8)
-
-| Component | Qty | Specifications | Recommended Sources | Est. Cost |
-|-----------|:---:|----------------|---------------------|----------:|
-| **TM1637 4-Digit Display** | 1 | 0.56" 7-segment, white or amber | [Amazon](https://www.amazon.com/s?k=TM1637+display), AliExpress | $3.00 |
-| **WS2812B RGB LEDs** | 3-5 | Addressable, 5V | [Adafruit 1938](https://www.adafruit.com/product/1938), strips | $3.00 |
-| **Single LED** | 1 | 5mm, any color (volume indicator) | Any | $0.50 |
-| **220Ω Resistor** | 1 | For single LED current limit | Any | $0.10 |
-
----
-
-## 3. Controls (~$2)
-
-| Component | Qty | Specifications | Recommended Sources | Est. Cost |
-|-----------|:---:|----------------|---------------------|----------:|
-| **Tactile Buttons** | 3 | 6mm x 6mm, through-hole | Amazon multipack, Omron B3F | $1.00 |
-| **10kΩ Resistors** | 3 | Pull-up (optional, Pi has internal) | Any | $0.30 |
-
----
-
-## 4. Wiring & Hardware (~$15)
-
-| Component | Qty | Specifications | Recommended Sources | Est. Cost |
-|-----------|:---:|----------------|---------------------|----------:|
-| **Silicone Wire Kit** | 1 | 22 AWG, multi-color | Amazon | $8.00 |
-| **2.54mm Header Pins** | 1 set | Male + Female | Amazon | $3.00 |
-| **M2.5 Nylon Standoffs** | 1 kit | For Pi mounting | Amazon | $4.00 |
-| **M3 Heat-Set Inserts** | 8 | Brass, 4mm length | Amazon, CNC Kitchen | $5.00 |
-| **JST-PH Connectors** | 4 | 2-pin (optional, for clean wiring) | Adafruit, Amazon | $3.00 |
-
----
-
-## 5. Acoustic Materials (~$15)
-
-| Component | Qty | Specifications | Recommended Sources | Est. Cost |
-|-----------|:---:|----------------|---------------------|----------:|
-| **Acoustic Foam** | 1 sheet | 1" thick, self-adhesive | Amazon | $10.00 |
-| **Silicone Gasket Sheet** | 1 | 2mm thick | Amazon | $5.00 |
-| **Polyfill** | small bag | Polyester stuffing | Craft store | $3.00 |
-
----
-
-## 6. 3D Printing Materials (~$10)
-
-| Component | Qty | Specifications | Notes | Est. Cost |
-|-----------|:---:|----------------|-------|----------:|
-| **PETG Filament** | ~200g | Any color | Better vibration damping than PLA | $6.00 |
-| **TPU Filament** | ~50g | For gaskets (optional) | Flexible seal material | $4.00 |
-
----
-
-## Total Cost Summary
-
-| Category | Cost |
-|----------|-----:|
-| Core Electronics | $45.10 |
-| Voice Input (I2S mics) | $8-12 |
-| Display & LEDs | $6.60 |
-| Controls | $1.30 |
-| Wiring & Hardware | $23.00 |
-| Acoustic Materials | $18.00 |
-| 3D Printing | $10.00 |
-| **TOTAL** | **~$112-120** |
-
-*Note: Speakers salvaged from original NS-CSPGASP unit (free)*
-
----
-
-## Shopping Checklist
-
-### Priority 1: Core (Order First)
-- [ ] Raspberry Pi Zero 2 W
-- [ ] MicroSD Card 32GB
-- [ ] MAX98357A breakout x2
-- [ ] INMP441 I2S MEMS microphones x2
-- [ ] 5V 3A USB-C Power Supply
-
-### Priority 2: Interface
-- [ ] TM1637 4-digit display
-- [ ] WS2812B RGB LEDs (3-5 pack)
-- [ ] Tactile buttons (3+)
-- [ ] USB-C breakout board
-
-### Priority 3: Assembly
-- [ ] Silicone wire kit
-- [ ] Header pins
-- [ ] M2.5 standoffs
-- [ ] M3 heat-set inserts
-- [ ] Acoustic foam
-- [ ] Silicone sheet
-
-### Priority 4: Filament
-- [ ] PETG (~200g needed)
-
----
-
-## Supplier Quick Links
-
-| Supplier | Best For |
-|----------|----------|
-| [Adafruit](https://www.adafruit.com) | Pi, MAX98357A, quality breakouts |
-| [SparkFun](https://www.sparkfun.com) | Alternatives to Adafruit |
-| [Amazon](https://www.amazon.com) | Bulk components, wire, hardware |
-| [AliExpress](https://www.aliexpress.com) | Budget TM1637, WS2812B, resistors |
-| [DigiKey](https://www.digikey.com) | Precision components |
-
----
-
-## Notes
-
-1. **Pi Zero 2 W availability**: Can be scarce. Check [rpilocator.com](https://rpilocator.com) for stock alerts.
-
-2. **MAX98357A quantity**: Buy 2 for stereo. Both receive the same I2S signal; channel selection is via SD_MODE pin.
-
-3. **Heat-set inserts**: Require soldering iron with appropriate tip. Alternative: use self-tapping screws directly into PETG.
-
-4. **Speaker reuse**: The original NS-CSPGASP speakers are 4Ω full-range drivers. Measure DC resistance to confirm (~3.2Ω expected).
+Soldering iron (also for the heat-set inserts), multimeter, wire strippers, small
+screwdrivers, hot glue, and a 3D printer with at least 160 mm of Z height.
