@@ -59,7 +59,8 @@ original's footprint.
 | Power | 5 V 3 A over USB-C |
 | Enclosure | 100 × 100 × 160 mm, PETG, no supports; ported bass chamber |
 
-About $110 in parts: see the [bill of materials](docs/BOM.md).
+About $87 in parts per speaker, or about $227 for the first one, because many parts
+come in packs: see the [bill of materials](docs/BOM.md), with a link for every part.
 
 ## Getting started
 

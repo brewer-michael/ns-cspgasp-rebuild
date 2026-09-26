@@ -91,19 +91,21 @@ About 450 g of filament in total.
 
 ## Other parts
 
+Links and prices are in the [bill of materials](../../docs/BOM.md).
+
 | Item | Qty | Use |
 |---|:-:|---|
-| M3 brass heat-set inserts (4.0 mm hole, 5–6 mm long) | 6 | Back panel pillars |
-| M3 × 8 countersunk (ISO 10642) | 6 | Back panel |
+| M3 brass heat-set inserts, 5.7 mm long (ruthex), in 4.0 mm holes | 6 | Back panel pillars |
+| M3 × 8 countersunk hex socket (ISO 10642) | 6 | Back panel |
 | M3 × 8 countersunk | 8 | Clamp rings. They cut their own thread in the side walls. |
 | M3 × 10 countersunk | 4 | Deck to the side blocks (self-tapping) |
-| M2.5 × 6 pan head | 4 | Pi Zero 2 W to the deck standoffs (self-tapping) |
+| M2.6 × 6 self-tapping pan head, or M2.5 × 6 | 4 | Pi Zero 2 W to the deck standoffs |
 | M2 × 6 self-tapping | 4 | Switch boards (top plate and back panel) |
-| 6 × 6 × 5 mm tactile switches | 4 | Through-hole; 5 mm is the height from the board to the top of the plunger |
+| Omron B3F-1000 tactile switches, 6 × 6 mm | 4 | Through-hole, 4.3 mm from the board to the top of the plunger (`switch_height`) |
 | Perfboard, 2.54 mm pitch | 50 × 12 mm and 24 × 14 mm | The three top switches sit 7 holes apart |
-| Smoked grey acrylic, 2 mm | 51.5 × 29.5 mm, 2.75 mm corners | Display window (68 × 40 for the 2.42" OLED) |
-| Closed-cell foam tape, 1 mm × 6 mm | ~0.7 m | Seals the chamber: deck ledge, back frame, panel rib |
-| Rubber bumpers, 10 mm | 4 | Recesses in the bottom |
+| Smoked acrylic, 1/16" (1.5–1.6 mm) | 51.5 × 29.5 mm, 2.75 mm corners | Display window (68 × 40 for the 2.42" OLED). Set `window_thickness` to your sheet's thickness. |
+| Closed-cell foam tape, 1 mm thick, 5–6 mm wide | ~1 m | Seals the chamber: deck ledge, back frame, panel rib, behind the driver flanges |
+| 3M Bumpon SJ5312 feet, 12.7 × 3.6 mm | 4 | Recesses in the bottom |
 | Polyester fibre fill | a handful | Loosely in the chamber |
 
 **Display window.** A laser-cutting service or a local makerspace can cut the
@@ -120,14 +122,15 @@ the paths the deck and the display take on their way in.
 1. **Inserts.** Press the six M3 inserts into the pillars beside the back opening
    (soldering iron at about 220 °C).
 2. **Deck.** Screw the Pi to the standoffs with the microSD slot facing the back.
-   Stick the amplifiers into their cradles (double-sided tape) and the 3-LED strip
-   to the fin, LEDs facing forward. Thread two pairs of speaker wire (~15 cm) down
-   through the wire hole. Run foam tape along the top of the chamber ledge. Lower
-   the deck into the body and fix it with 4 × M3 × 10. Seal the wire hole with hot
-   glue.
+   Fix the amplifiers in their cradles with a dab of hot glue and stick the 3-LED
+   strip to the fin, LEDs facing forward. Thread two pairs of speaker wire (~15 cm)
+   down through the wire hole. Run foam tape along the top of the chamber ledge.
+   Lower the deck into the body and fix it with 4 × M3 × 10. Seal the wire hole
+   with hot glue.
 3. **Display.** Solder the wires on, then slide the module down its rails from the
    top, glass facing the window. Press the acrylic window into its recess from the
-   front; a few dots of clear glue hold it.
+   front. A few dots of E6000 on the recess floor, clear of the display area, hold
+   it.
 4. **Light.** Push the diffuser into the slot from the front until it touches the
    LEDs. Its front face sits 0.6 mm back, in the waist groove. A drop of glue holds it.
 5. **Drivers.** Reach through each side opening and pull out that side's wire pair.

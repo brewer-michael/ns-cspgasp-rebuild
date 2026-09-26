@@ -71,7 +71,7 @@ radiator_hole_count = 4;
 /* [Display] */
 display_type = "oled_1_3";      // oled_1_3 | oled_2_42 | tm1637
 display_center_z = 125;         // centre of the visible area
-window_thickness = 2;           // smoked acrylic window, flush with the front
+window_thickness = 1.6;         // 1/16" smoked acrylic, flush with the front: measure your sheet
 
 /* [Status light] */
 light_length = 44;
@@ -81,7 +81,7 @@ light_height = 2.4;
 button_diameter = 10;
 button_pitch = 17.78;           // 7 x 2.54 mm: all three switches fit one strip of perfboard
 button_y = 50;                  // row of buttons and microphones, from the front
-switch_height = 5;              // 6 x 6 mm tactile switch: board to top of the plunger
+switch_height = 4.3;            // Omron B3F-1000 (6 x 6 mm): board to the top of the plunger
 cap_proud = 0.8;                // how far the caps stand above the surface
 mute_x = 50;                    // microphone mute button on the back panel
 mute_z = 146;
@@ -109,6 +109,7 @@ m3_head = 6.2;                  // countersunk
 m3_pilot = 2.6;                 // M3 screw cutting its own thread in PETG
 m25_pilot = 2.2;
 m2_pilot = 1.7;
+foot_diameter = 12.7;           // 3M Bumpon SJ5312 feet, in 1 mm recesses
 
 /* [Rendering] */
 $fn = 64;
@@ -303,7 +304,7 @@ module body() {
             translate([p[0], panel_y + eps, p[1]]) teardrop_y(insert_diameter, insert_depth + seal + eps);
         for (p = deck_screws())
             translate([p[0], p[1], deck_z + eps]) mirror([0, 0, 1]) cylinder(d = m3_pilot, h = 8);
-        for (p = feet()) translate([p[0], p[1], -eps]) cylinder(d = 10.5, h = 1);
+        for (p = feet()) translate([p[0], p[1], -eps]) cylinder(d = foot_diameter + 0.5, h = 1);
     }
 }
 

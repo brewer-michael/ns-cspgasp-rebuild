@@ -50,10 +50,12 @@ depth. These go into the enclosure model (step 6).
 
 ## 4. Test on the desk
 
-Wire everything with jumper wires as in
-[gpio_pinout.md](../hardware/schematics/gpio_pinout.md). Power the Pi through the
-USB-C breakout, not its own micro-USB port, so the amplifiers get their current
-straight from the supply.
+Wire everything on a half-size breadboard with jumper wires
+([desk test parts](BOM.md#desk-test)) as in
+[gpio_pinout.md](../hardware/schematics/gpio_pinout.md). Each shared line, such as
+the I2S clocks that go to both amplifiers and both microphones, gets its own
+breadboard row. Power the Pi through the USB-C breakout, not its own micro-USB
+port, so the amplifiers get their current straight from the supply.
 
 **Sound.** Start with one amplifier and one driver:
 
