@@ -476,6 +476,46 @@ async def test_stop_interrupts_a_stream_and_closes_its_source(speaker: Speaker) 
     assert not player.is_playing
 
 
+def stalled(chunk: bytes, closed: asyncio.Event):
+    """A source that delivers one chunk and then hangs, like a stuck TTS server."""
+
+    async def source():
+        try:
+            yield chunk
+            await asyncio.Event().wait()
+        finally:
+            closed.set()
+
+    return source()
+
+
+async def test_stop_interrupts_a_stream_whose_source_has_stalled(speaker: Speaker) -> None:
+    player = AudioPlayer(speaker.config())
+    chunk = tone(0.01)
+    closed = asyncio.Event()
+    playing = asyncio.create_task(player.play_stream(PcmFormat(16000), stalled(chunk, closed)))
+    await wait_for(lambda: speaker.size() == len(chunk))
+    player.stop()
+    assert await asyncio.wait_for(playing, 1) is False
+    assert closed.is_set()
+    assert not player.is_playing
+
+
+async def test_cancelling_the_caller_cancels_playback(speaker: Speaker) -> None:
+    player = AudioPlayer(speaker.config())
+    closed = asyncio.Event()
+    playing = asyncio.create_task(player.play_stream(PcmFormat(16000), stalled(tone(0.01), closed)))
+    await wait_for(lambda: speaker.size() > 0)
+    playing.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(playing, 1)
+    assert closed.is_set()
+    assert not player.is_playing
+    pcm = tone(0.05)
+    assert await player.play_pcm(pcm, PcmFormat(16000)) is True  # the player is still usable
+    assert speaker.output(1) == pcm
+
+
 async def test_stop_interrupts_a_sound_that_is_still_playing(speaker: Speaker) -> None:
     player = AudioPlayer(speaker.config(hold=30))
     pcm = tone(0.1)

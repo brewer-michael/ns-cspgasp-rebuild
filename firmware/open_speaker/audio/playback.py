@@ -68,6 +68,7 @@ class AudioPlayer:
         self.software_gain = 1.0
         self._lock = asyncio.Lock()
         self._proc: asyncio.subprocess.Process | None = None
+        self._feeder: asyncio.Task[None] | None = None
         self._stopped = False
 
     @property
@@ -77,6 +78,9 @@ class AudioPlayer:
     def stop(self) -> None:
         """Interrupt the current sound (queued sounds still play)."""
         self._stopped = True
+        if self._feeder is not None:
+            # also stops waiting on a source that has stalled (e.g. a slow TTS server)
+            self._feeder.cancel()
         if self._proc is not None and self._proc.returncode is None:
             with contextlib.suppress(ProcessLookupError):
                 self._proc.terminate()
@@ -108,21 +112,36 @@ class AudioPlayer:
             errors: collections.deque[str] = collections.deque(maxlen=10)
             stderr_task = asyncio.create_task(drain_stderr(proc.stderr, errors))
             assert proc.stdin is not None
+            stdin = proc.stdin
             iterator = _iterate(chunks)
-            try:
+
+            async def feed() -> None:
                 async for chunk in iterator:
                     if self._stopped:
                         break
                     chunk = to_int16(chunk, fmt.width)
                     chunk = apply_gain(chunk, gain * self.software_gain)
-                    proc.stdin.write(chunk)
-                    await proc.stdin.drain()
+                    stdin.write(chunk)
+                    await stdin.drain()
                 if not self._stopped:
-                    proc.stdin.close()
+                    stdin.close()
                     await proc.wait()
+
+            self._feeder = asyncio.create_task(feed())
+            if self._stopped:  # stop() came while the player was starting
+                self._feeder.cancel()
+            try:
+                await self._feeder
+            except asyncio.CancelledError:
+                task = asyncio.current_task()
+                if task is not None and task.cancelling():
+                    raise  # our caller is being cancelled, not just this sound
             except (BrokenPipeError, ConnectionResetError):
-                pass
+                # The player went away; let it exit by itself so its exit code is kept.
+                with contextlib.suppress(TimeoutError):
+                    await asyncio.wait_for(proc.wait(), 1.0)
             finally:
+                self._feeder = None
                 # Release the source (e.g. a network connection) if we stopped early.
                 await iterator.aclose()
                 aclose = getattr(chunks, "aclose", None)
