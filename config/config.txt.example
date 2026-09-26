@@ -1,0 +1,70 @@
+# /boot/config.txt additions for Open Hardware Smart Speaker
+#
+# Add these lines to your existing /boot/config.txt
+# (or /boot/firmware/config.txt on newer Raspberry Pi OS)
+#
+# After editing, reboot for changes to take effect.
+
+# =============================================================================
+# AUDIO CONFIGURATION
+# =============================================================================
+
+# Disable the default onboard audio (we use I2S instead)
+dtparam=audio=off
+
+# Enable I2S audio output for MAX98357A DAC/Amp
+# This overlay works with HiFiBerry-compatible I2S DACs
+dtoverlay=hifiberry-dac
+
+# =============================================================================
+# MICROPHONE CONFIGURATION (I2S MEMS - INMP441)
+# =============================================================================
+
+# Enable simultaneous I2S input and output
+# The googlevoicehat-soundcard overlay supports both directions
+# Note: This replaces hifiberry-dac if you need both input and output
+# Comment out hifiberry-dac above and uncomment this instead:
+# dtoverlay=googlevoicehat-soundcard
+
+# Alternative: Use a simple I2S input overlay (output only from hifiberry-dac)
+# You may need to use a custom overlay for true full-duplex I2S
+# See: https://github.com/raspberrypi/linux/issues for custom overlays
+
+# Optional: Improve audio timing (reduces pops/clicks)
+# Uncomment if experiencing audio glitches
+# audio_pwm_mode=2
+
+# =============================================================================
+# GPIO CONFIGURATION
+# =============================================================================
+
+# No special GPIO configuration needed.
+# The pins used (10, 12, 17, 18, 19, 21, 22, 23, 24, 27) are standard GPIO.
+
+# =============================================================================
+# PERFORMANCE
+# =============================================================================
+
+# Optional: Disable Bluetooth to free up resources
+# Uncomment if not using Bluetooth
+# dtoverlay=disable-bt
+
+# Optional: Disable WiFi power management (improves latency)
+# Add to /etc/rc.local instead:
+# iwconfig wlan0 power off
+
+# =============================================================================
+# NOTES
+# =============================================================================
+#
+# I2S Pinout (fixed by hardware):
+#   GPIO18 = BCLK (Bit Clock) - shared with mic SCK
+#   GPIO19 = LRCLK (Left/Right Clock) - shared with mic WS
+#   GPIO20 = DIN (Data In from microphones)
+#   GPIO21 = DOUT (Data Out to amplifiers)
+#
+# After adding these settings:
+# 1. sudo reboot
+# 2. Test audio output: speaker-test -c 2 -t sine
+# 3. Test audio input: arecord -d 5 test.wav && aplay test.wav
+# 4. Check audio devices: aplay -l && arecord -l

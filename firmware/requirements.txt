@@ -1,0 +1,22 @@
+# Open Hardware Smart Speaker - Python Dependencies
+#
+# Install with: pip install -r requirements.txt
+# Note: Some packages require system libraries (see docs/ASSEMBLY_GUIDE.md)
+
+# GPIO control (Raspberry Pi)
+RPi.GPIO>=0.7.0
+
+# NeoPixel/WS2812B LED control
+# Requires: sudo apt install python3-dev
+adafruit-circuitpython-neopixel>=6.3.0
+rpi_ws281x>=5.0.0
+
+# Optional: Board pin definitions
+adafruit-blinka>=8.0.0
+board>=1.0
+
+# Optional: I2C support (for future sensors)
+# smbus2>=0.4.0
+
+# Optional: Temperature sensor support
+# adafruit-circuitpython-dht>=4.0.0
