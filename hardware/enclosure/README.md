@@ -1,175 +1,172 @@
-# Enclosure 3D Printing Guide
+# Enclosure
 
-## Files
+![Front, light and dark](../../docs/images/enclosure.png)
 
-| File | Description |
-|------|-------------|
-| `main_body.scad` | Parametric OpenSCAD source for main enclosure |
-| `main_body.stl` | Export for printing (generate from SCAD) |
-| `back_cover.stl` | Removable access panel |
+A 100 × 100 × 160 mm tower, close to the footprint of the NS-CSPGASP it replaces
+(96 × 96 × 151.6 mm):
 
-## Before Printing
+- **Bass chamber** (lower 84 mm): the two salvaged drivers fire left and right
+  behind round press-fit grilles. The chamber is tuned by a port in the back panel,
+  or uses a passive radiator, or stays sealed.
+- **Waist groove** around the body. The status LEDs shine through it at the front
+  as a thin line of light.
+- **Head**: the clock display sits behind a flush smoked window. The top plate has
+  three buttons and two microphones and no visible fasteners.
+- **Back panel**: the only screwed-on part. It carries the port, USB-C power and the
+  microphone mute button, and it locks the top plate in place. Take it off to reach
+  the Pi and its microSD card.
 
-### 1. Measure Your Speakers
+Everything is in [`main_body.scad`](main_body.scad) (OpenSCAD 2021.01 or newer). It
+is parametric: the dimensions of your drivers, the display type and the bass
+option are all settings at the top of the file.
 
-Update the parameters at the top of `main_body.scad` with your actual speaker measurements:
+| Exploded | Section | Back |
+|---|---|---|
+| ![Exploded](../../docs/images/enclosure-exploded.png) | ![Section](../../docs/images/enclosure-section.png) | ![Back](../../docs/images/enclosure-back.png) |
 
-```openscad
-speaker_outer_diameter = 52;      // mm - your measurement
-speaker_depth = 25;               // mm - your measurement
-speaker_mounting_circle = 45;     // mm - your measurement
+## Before you print: measure the drivers
+
+The driver values in the file are estimates taken from the teardown photos. Take
+the drivers out of the original unit, fill in
+[`../speaker_specs/measurements.md`](../speaker_specs/measurements.md), then set:
+
+| Parameter | What to measure |
+|---|---|
+| `speaker_frame_diameter` | Outside diameter of the frame (the flange at the front) |
+| `speaker_cone_diameter` | Cone plus rubber surround: the part that moves and must stay uncovered |
+| `speaker_basket_diameter` | Widest part *behind* the flange. It passes through the side wall. |
+| `speaker_flange_thickness` | Thickness of that front flange |
+| `speaker_depth` | Front of the flange to the back of the magnet |
+| `speaker_mount` | `clamp` (default): a printed ring clamps the flange, so any round driver works. `holes`: screws go through the frame's own holes. Set `speaker_hole_circle`, `speaker_hole_count` and `speaker_hole_angle` too. |
+
+The model checks itself: OpenSCAD stops with a message if the drivers would hit the
+floor, the deck, the port or each other.
+
+Other settings you might change:
+
+| Parameter | Default | Options |
+|---|---|---|
+| `display_type` | `oled_1_3` | `oled_2_42` (larger window, SSD1309) or `tm1637` (4-digit 7-segment) |
+| `bass_mode` | `port` | `passive_radiator` (set `radiator_*` to your radiator) or `sealed` |
+| `port_tuning_hz` | 120 | The port length is calculated from the chamber volume |
+| `grille_pattern` | `hex` | `rings` |
+| `fit` | 0.25 mm | Clearance between printed parts. Raise it if parts bind. |
+
+On every render OpenSCAD prints the chamber volume and the port length, e.g.
+`Port: 16 mm x 65 mm, tuned to ~120 Hz`.
+
+## Export
+
+```sh
+./export.sh                                   # STLs into ./stl
+./export.sh -D speaker_frame_diameter=53      # with your measurements, no file edits
+./export.sh --images                          # also refresh docs/images/enclosure-*.png
 ```
 
-See `../speaker_specs/measurements.md` for measurement guide.
+Or open `main_body.scad` in OpenSCAD, choose a part in the Customizer, then render
+(F6) and export.
 
-### 2. Generate STL
+## Printed parts
 
-Open `main_body.scad` in OpenSCAD and:
-1. Press F5 to preview
-2. Press F6 to render
-3. Export as STL (File → Export → Export as STL)
+PETG throughout: it is tougher and damps vibration better than PLA. Use 0.2 mm
+layers, 4 perimeters and 40% gyroid infill. **No supports are needed.** Overhangs
+are 45 degrees or less, and horizontal holes have pointed or bridged tops.
 
-For back cover, uncomment the `back_cover()` line and re-export.
+![Print layout](../../docs/images/enclosure-print-layout.png)
 
----
+| Part | Qty | Orientation | Notes |
+|---|:-:|---|---|
+| `body` | 1 | Upright, bottom on the bed | ~300 g, needs 160 mm of Z height. Enable bridging: the tops of the display opening and light slot are bridges. |
+| `back_panel` | 1 | Outside face down | Port tube, USB-C shelf and mute button bosses point up |
+| `deck` | 1 | As exported | Chamber lid; carries the Pi, the amplifiers and the LED strip |
+| `top_plate` | 1 | Upside down (exported that way) | The bed texture becomes the top surface |
+| `grille` | 2 | Outside face down | Crush ribs on the rim make it a press fit |
+| `clamp_ring` | 2 | Countersinks up | Not needed with `speaker_mount = "holes"` |
+| `caps` | 1 set | Tops on the bed (exported that way) | −, •, + for the top and ○ for mic mute. D-shaped so they can't turn. |
+| `diffuser` | 1 | Flat | **White or natural** PETG: carries the LED light to the slot |
+| `window` | optional | Flat | Only if you can't get acrylic (see below) |
+| `port_plug` | optional | Flange down | Turns a ported back panel into a sealed box |
 
-## Print Settings
+About 450 g of filament in total.
 
-### Material: PETG (Recommended)
+## Other parts
 
-| Setting | Value | Notes |
-|---------|-------|-------|
-| **Material** | PETG | Better vibration damping than PLA |
-| **Nozzle Temp** | 230-250°C | Per your filament |
-| **Bed Temp** | 70-80°C | |
-| **Layer Height** | 0.2mm | Balance of speed and quality |
-| **Infill** | 40-60% | Higher = better acoustics |
-| **Infill Pattern** | Gyroid or Grid | Gyroid is quieter |
-| **Walls** | 3-4 perimeters | Stiffness matters |
-| **Top/Bottom** | 4-5 layers | |
-| **Supports** | Yes (touching buildplate) | For speaker grilles |
+| Item | Qty | Use |
+|---|:-:|---|
+| M3 brass heat-set inserts (4.0 mm hole, 5–6 mm long) | 6 | Back panel pillars |
+| M3 × 8 countersunk (ISO 10642) | 6 | Back panel |
+| M3 × 8 countersunk | 8 | Clamp rings. They cut their own thread in the side walls. |
+| M3 × 10 countersunk | 4 | Deck to the side blocks (self-tapping) |
+| M2.5 × 6 pan head | 4 | Pi Zero 2 W to the deck standoffs (self-tapping) |
+| M2 × 6 self-tapping | 4 | Switch boards (top plate and back panel) |
+| 6 × 6 × 5 mm tactile switches | 4 | Through-hole; 5 mm is the height from the board to the top of the plunger |
+| Perfboard, 2.54 mm pitch | 50 × 12 mm and 24 × 14 mm | The three top switches sit 7 holes apart |
+| Smoked grey acrylic, 2 mm | 51.5 × 29.5 mm, 2.75 mm corners | Display window (68 × 40 for the 2.42" OLED) |
+| Closed-cell foam tape, 1 mm × 6 mm | ~0.7 m | Seals the chamber: deck ledge, back frame, panel rib |
+| Rubber bumpers, 10 mm | 4 | Recesses in the bottom |
+| Polyester fibre fill | a handful | Loosely in the chamber |
 
-### Orientation
+**Display window.** A laser-cutting service or a local makerspace can cut the
+acrylic. You can also score it with a knife, snap it and file the corners. Behind
+smoked acrylic the display disappears when it is dark, like the original's. If you
+have to print the window instead, set `window_thickness = 1.2` and print it in clear
+PETG at 100% infill. The digits will look softer.
 
-Print main body with **front face down** (speaker grilles on build plate):
-- Better surface finish on visible front
-- Supports only needed for internal features
+## Assembly
 
-### Estimated Print Time
+Everything below has been checked in the model for clearance, including the path
+each part takes into place.
 
-- Main body: 8-14 hours (depending on size and infill)
-- Back cover: 1-2 hours
+1. **Inserts.** Press the six M3 inserts into the pillars beside the back opening
+   (soldering iron at about 220 °C).
+2. **Deck.** Screw the Pi to the standoffs with the microSD slot facing the back.
+   Stick the amplifiers into their cradles (double-sided tape) and the 3-LED strip
+   to the fin, LEDs facing forward. Thread two pairs of speaker wire (~15 cm) down
+   through the wire hole. Run foam tape along the top of the chamber ledge. Lower
+   the deck into the body and fix it with 4 × M3 × 10. Seal the wire hole with hot
+   glue.
+3. **Display.** Solder the wires on, then slide the module down its rails from the
+   top, glass facing the window. Press the acrylic window into its recess from the
+   front; a few dots of clear glue hold it.
+4. **Light.** Push the diffuser into the slot from the front until it touches the
+   LEDs. Its front face sits 0.6 mm back, in the waist groove. A drop of glue holds it.
+5. **Drivers.** Reach through each side opening and pull out that side's wire pair.
+   Solder it to the driver, red to +. Put a loose handful of fibre fill into the
+   chamber. Set the driver into its seat with a foam ring behind the flange. Fit
+   the clamp ring (4 × M3 × 8), then press the grille on. To take a grille off
+   again, lever it out at the notch underneath.
+6. **Top plate.** Drop the caps into their holes. Screw the switch strip onto the
+   two bosses (2 × M2 × 6). Glue the INMP441 boards into their pockets with the
+   sound hole over the port; a small foam ring around the port seals it. Wire
+   everything to the Pi. Slide the plate's front tongue into the groove behind the
+   front wall, then lower the back of the plate.
+7. **Back panel.** Glue the USB-C breakout onto its shelf, receptacle against the
+   panel. Screw on the mute switch board with its cap. Run foam tape along the
+   body's frame beside and below the chamber opening, and along the panel's rib.
+   Slide the panel in: its groove catches the top plate's rear tongue and its rib
+   slides under the deck. Fix it with 6 × M3 × 8.
+8. **Feet.** Stick the four bumpers into the recesses underneath.
 
-### Filament Usage
+Wiring is in [`../schematics/gpio_pinout.md`](../schematics/gpio_pinout.md). The
+complete build, from the teardown to software, is in
+[`../../docs/ASSEMBLY_GUIDE.md`](../../docs/ASSEMBLY_GUIDE.md).
 
-- Main body: ~150-200g
-- Back cover: ~30-50g
+## Design notes
 
----
-
-## Post-Processing
-
-### 1. Remove Supports
-
-Carefully remove support material from:
-- Speaker grille holes
-- Button holes
-- Display window
-
-### 2. Heat-Set Inserts
-
-Install M3 brass heat-set inserts in the four corners for back panel attachment:
-1. Heat soldering iron to ~220°C
-2. Place insert on hole
-3. Press straight down slowly
-4. Let cool before handling
-
-### 3. Test Fit Components
-
-Before final assembly, test fit:
-- [ ] Speakers sit flush in gasket grooves
-- [ ] Display fits in window
-- [ ] Buttons move freely in holes
-- [ ] Pi mounts on standoffs
-- [ ] Back cover attaches smoothly
-
----
-
-## Acoustic Treatment
-
-### Speaker Gaskets
-
-Cut silicone gasket material to fit the gasket grooves:
-1. Trace the groove diameter on silicone sheet
-2. Cut outer circle
-3. Cut inner circle (cone clearance)
-4. Press into groove
-
-### Internal Damping
-
-Line the inside walls with acoustic foam:
-- Speaker chambers: Full coverage
-- Electronics bay: Partial (leave ventilation clear)
-
-### Bass Tuning (Optional)
-
-Add small amounts of polyfill to speaker chambers to tune low-frequency response. Start with a loose ball and adjust.
-
----
-
-## Design Notes
-
-### Chamber Separation
-
-The center divider keeps left and right speaker chambers acoustically isolated. This prevents phase cancellation at low frequencies.
-
-### Ventilation
-
-The back panel has ventilation slots positioned over the Pi Zero. Ensure these remain unobstructed.
-
-### Modularity
-
-The back panel is removable for:
-- Initial assembly
-- Firmware updates (SD card access)
-- Future modifications
-
----
-
-## Customization
-
-### Larger Speakers
-
-If using larger speakers, increase:
-- `speaker_outer_diameter`
-- `speaker_chamber_width` (automatic)
-- `internal_height` (if needed)
-
-### Different Display
-
-For different display modules, adjust:
-- `display_width`
-- `display_height`
-
-### Add Aux Port
-
-To add a 3.5mm audio jack, add a cutout in the back panel:
-```openscad
-// In back_cover() difference block:
-translate([enclosure_width - 20, 10, 0])
-cylinder(h=cover_thickness*3, d=6, $fn=24, center=true);
-```
-
-### USB Microphone Placement
-
-The USB microphone connects via the Pi's micro-USB port. Options:
-
-1. **External mic**: Route USB cable through a small hole in the back panel
-2. **Internal mic**: Mount a small USB mic inside with sound ports in the front panel
-
-For optimal voice pickup, position the microphone:
-- Away from the speakers (reduces echo)
-- Near the front of the enclosure
-- With clear path to sound inlet holes
-
-If using a ReSpeaker or similar array mic, you may want to mount it on top of the enclosure with its own bracket.
+- **Why the drivers mount from outside.** The original's drivers are clamped
+  between the halves of its plastic box. They may have no screw holes, so the
+  default mount clamps the flange with a ring and fits any round driver. The seat
+  behind the flange flares out at 45 degrees, so the back of the cone is never boxed
+  in, and the flare prints without support.
+- **One shared chamber** for both drivers, about 0.54 L net. The earlier plan
+  divided it. A single tuned volume gives more bass from drivers this small, and at
+  low frequencies both drivers play the same signal anyway.
+- **Airtight where it matters.** The chamber leaks only through the port. The deck
+  seals on a 7 mm ledge; the back panel seals on foam tape below the deck line.
+  Above the deck line, the panel's frame is the hard stop that sets how far the
+  foam compresses.
+- **No visible fasteners on the front, sides or top.** Screws hide under the
+  grilles, and the top plate is held by tongues. The six countersunk screws are all
+  on the back.
+- **Heat.** The Pi Zero 2 W sits on the deck under the vents in the back panel. The
+  vents open into the head, which is sealed off from the chamber.
