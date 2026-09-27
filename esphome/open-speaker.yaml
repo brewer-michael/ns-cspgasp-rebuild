@@ -798,13 +798,13 @@ script:
           if (!now.is_valid())
             return;
           const int start = ${night_start_hour}, end = ${night_end_hour};
-          bool night = start == end ? false
-                     : start < end ? (now.hour >= start && now.hour < end)
-                                   : (now.hour >= start || now.hour < end);
-          if (night == id(night))
+          bool dark = start == end ? false
+                    : start < end ? (now.hour >= start && now.hour < end)
+                                  : (now.hour >= start || now.hour < end);
+          if (dark == id(night))
             return;
-          id(night) = night;
-          id(oled).set_contrast(night ? 0.03f : 0.7f);
+          id(night) = dark;
+          id(oled).set_contrast(dark ? 0.03f : 0.7f);
           id(update_light).execute();
 
   - id: update_light
