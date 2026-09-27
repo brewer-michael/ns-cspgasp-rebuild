@@ -268,7 +268,8 @@ h1 {
     <h1>Parts and where to buy them</h1>
     <p class="lede">
       Every part for the speaker, the store it was priced at, and searches at other stores so
-      you can compare. Prices are in US dollars, checked on <span id="checked-date">26 September 2026</span>,
+      you can compare. Choose the brain, an ESP32-S3 or a Raspberry Pi Zero 2 W, and the
+      list shows its parts. Prices are in US dollars, checked on <span id="checked-date">26 September 2026</span>,
       without tax or shipping. <span class="approx" aria-hidden="true">≈</span>marks an estimate: check it
       in the store. Tick parts off as you buy them; this browser remembers the ticks.
     </p>
@@ -308,6 +309,13 @@ h1 {
         <button type="button" id="fewer" aria-label="One speaker fewer">−</button>
         <input id="speakers" type="number" inputmode="numeric" min="1" max="20" value="1" aria-labelledby="speakers-label">
         <button type="button" id="more" aria-label="One speaker more">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="field-label" id="brain-label">Brain</span>
+      <div class="seg" role="group" aria-labelledby="brain-label">
+        <button type="button" data-brain="esp32" aria-pressed="true">ESP32-S3</button>
+        <button type="button" data-brain="pi" aria-pressed="false">Raspberry Pi</button>
       </div>
     </div>
     <div class="field">
@@ -367,6 +375,8 @@ h1 {
 {
   "checked": "26 September 2026",
   "groups": [
+    {"id": "esp32-s3", "name": "Brain: ESP32-S3", "brain": "esp32"},
+    {"id": "raspberry-pi-zero-2-w", "name": "Brain: Raspberry Pi Zero 2 W", "brain": "pi"},
     {"id": "electronics", "name": "Electronics"},
     {"id": "enclosure-hardware", "name": "Enclosure hardware"},
     {"id": "filament", "name": "Filament"},
@@ -375,7 +385,13 @@ h1 {
     {"id": "shop-supplies", "name": "Shop supplies", "once": true}
   ],
   "items": [
-    {"id": "pi", "group": "electronics", "name": "Raspberry Pi Zero 2 WH", "part": "SC0721",
+    {"id": "devkit", "group": "esp32-s3", "name": "ESP32-S3-DevKitC-1-N8R8",
+     "detail": "8 MB flash, 8 MB PSRAM, pins soldered on", "qty": "1", "use": [1, 1], "price": 15.00, "estimate": false,
+     "store": "DigiKey", "url": "https://www.digikey.com/en/products/detail/espressif-systems/ESP32-S3-DEVKITC-1-N8R8/15295894",
+     "search": "ESP32-S3-DevKitC-1-N8R8", "compare": ["google", "amazon", "digikey", "mouser"],
+     "note": "It needs the 8 MB of PSRAM for the wake word, so avoid the plain N8 version."},
+
+    {"id": "pi", "group": "raspberry-pi-zero-2-w", "name": "Raspberry Pi Zero 2 WH", "part": "SC0721",
      "detail": "Header soldered on", "qty": "1", "use": [1, 1], "price": 18.00, "estimate": false,
      "store": "DigiKey", "url": "https://www.digikey.com/en/products/detail/raspberry-pi/SC0721/24627135",
      "also": [
@@ -386,7 +402,7 @@ h1 {
      "search": "Raspberry Pi Zero 2 WH", "compare": ["google", "amazon", "ebay", "digikey"],
      "note": "The Zero 2 W without the header is $15, but then you solder the header yourself."},
 
-    {"id": "microsd", "group": "electronics", "name": "microSD card, 32 GB, A1", "part": "SDSQUA4-032G-GN6MA",
+    {"id": "microsd", "group": "raspberry-pi-zero-2-w", "name": "microSD card, 32 GB, A1", "part": "SDSQUA4-032G-GN6MA",
      "detail": "SanDisk Ultra", "qty": "1", "use": [1, 1], "price": 9, "estimate": true,
      "store": "Amazon", "url": "https://www.amazon.com/dp/B08GY9NYRM",
      "also": [
@@ -601,7 +617,7 @@ h1 {
   const items = data.items;
 
   const KEY = 'open-speaker-shopping-list';
-  const DEFAULTS = { speakers: 1, view: 'category', hideDone: false, done: {} };
+  const DEFAULTS = { speakers: 1, view: 'category', brain: 'esp32', hideDone: false, done: {} };
   const state = loadState();
 
   function loadState() {
@@ -610,6 +626,7 @@ h1 {
       const s = { ...DEFAULTS, ...saved, done: { ...(saved.done || {}) } };
       s.speakers = clampSpeakers(s.speakers);
       if (s.view !== 'store') s.view = 'category';
+      if (s.brain !== 'pi') s.brain = 'esp32';
       return s;
     } catch (err) {
       return { ...DEFAULTS, done: {} };
@@ -639,6 +656,12 @@ h1 {
   };
 
   const cents = (v) => Math.round(v * 100) / 100;
+  // parts for the chosen brain: its own group plus everything shared
+  const inBuild = (it) => {
+    const brain = groups.get(it.group).brain;
+    return !brain || brain === state.brain;
+  };
+  const buildItems = () => items.filter(inBuild);
   const isOnce = (it) => Boolean(groups.get(it.group).once);
   // how many packs (or pieces) to buy for n speakers; one-time parts are bought once
   const unitsFor = (it, n) => (isOnce(it) ? 1 : Math.ceil((n * it.use[0]) / it.use[1] - 1e-9));
@@ -700,6 +723,7 @@ h1 {
   }
 
   function sections(n) {
+    const items = buildItems();
     if (state.view === 'store') {
       const byStore = new Map();
       for (const it of items) {
@@ -710,7 +734,7 @@ h1 {
         .map(([store, list]) => ({ key: store, title: store, list, sum: total(list, (it) => buyCost(it, n)) }))
         .sort((a, b) => b.sum.value - a.sum.value);
     }
-    return data.groups.map((g) => {
+    return data.groups.filter((g) => !g.brain || g.brain === state.brain).map((g) => {
       const list = items.filter((it) => it.group === g.id);
       return { key: g.id, title: g.name, note: g.note, once: g.once, list, sum: total(list, (it) => buyCost(it, n)) };
     });
@@ -744,6 +768,7 @@ h1 {
 
   function renderTotals() {
     const n = state.speakers;
+    const items = buildItems();
     const speakerParts = items.filter((it) => !isOnce(it));
     const per = total(speakerParts, perSpeaker);
     const buy = total(speakerParts, (it) => buyCost(it, n));
@@ -767,6 +792,9 @@ h1 {
     document.querySelectorAll('[data-view]').forEach((b) => {
       b.setAttribute('aria-pressed', String(b.dataset.view === state.view));
     });
+    document.querySelectorAll('[data-brain]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.brain === state.brain));
+    });
   }
 
   function render() {
@@ -789,6 +817,11 @@ h1 {
     saveState();
     render();
   }));
+  document.querySelectorAll('[data-brain]').forEach((b) => b.addEventListener('click', () => {
+    state.brain = b.dataset.brain;
+    saveState();
+    render();
+  }));
   $('#hide-done').addEventListener('change', (e) => {
     state.hideDone = e.target.checked;
     saveState();
@@ -808,13 +841,14 @@ h1 {
   // a plain-text list of the parts still to buy, grouped by store
   function listText() {
     const n = state.speakers;
-    const open = items.filter((it) => !state.done[it.id]);
+    const open = buildItems().filter((it) => !state.done[it.id]);
     const stores = new Map();
     for (const it of open) {
       if (!stores.has(it.store)) stores.set(it.store, []);
       stores.get(it.store).push(it);
     }
-    const lines = [`Open Speaker parts for ${plural(n, 'speaker', 'speakers')} (prices checked ${data.checked}, ≈ = estimate)`, ''];
+    const brain = state.brain === 'pi' ? 'Raspberry Pi' : 'ESP32-S3';
+    const lines = [`Open Speaker parts for ${plural(n, 'speaker', 'speakers')} with the ${brain} (prices checked ${data.checked}, ≈ = estimate)`, ''];
     for (const [store, list] of stores) {
       const sum = total(list, (it) => buyCost(it, n));
       lines.push(`${store}: ${moneyText(sum.value, sum.approx)}`);

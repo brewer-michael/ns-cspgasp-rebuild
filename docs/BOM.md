@@ -10,28 +10,57 @@ repository in a browser. It has every part with its store link and searches at
 other stores to compare prices. It also works out what to buy for any number of
 speakers and lets you tick parts off as you buy them.
 
+The speaker has one of two brains, an ESP32-S3 or a Raspberry Pi Zero 2 W
+([which one?](../README.md#two-brains)). Everything else is the same for both.
+
 | | Per speaker | First build |
 |---|--:|--:|
-| [Electronics](#electronics) | ≈ $69.64 | ≈ $139.57 |
+| [Brain: ESP32-S3](#esp32-s3) | $15.00 | $15.00 |
+| [Brain: Raspberry Pi Zero 2 W](#raspberry-pi-zero-2-w) | ≈ $27.00 | ≈ $27.00 |
+| [Electronics](#electronics) | ≈ $42.64 | ≈ $112.57 |
 | [Enclosure hardware](#enclosure-hardware) | ≈ $3.99 | ≈ $58.86 |
 | [Filament](#filament) | $13.10 | $28.79 |
-| **Speaker** | **≈ $87** | **≈ $227** |
+| **Speaker with the ESP32-S3** | **≈ $75** | **≈ $215** |
+| **Speaker with the Pi** | **≈ $87** | **≈ $227** |
 | [Desk test parts](#desk-test) (reusable) | | ≈ $12.90 |
 | [Shop supplies](#shop-supplies) | | ≈ $21.00 |
-| **Everything** | | **≈ $261** |
 
 *Per speaker* counts only what one speaker uses. *First build* is what you pay,
 because screws, wire, filament and several modules only come in packs. Of the
-$227, $145 is estimated, mostly Amazon packs. A second speaker costs about $65
-more: a Pi, microSD card, amplifiers, USB-C breakout, power supply and switches,
-plus another pack of microphones.
+$215 for the ESP32-S3 build, $136 is estimated, mostly Amazon packs. A second
+speaker costs about $53 more with the ESP32-S3, or $65 with the Pi: the brain,
+amplifiers, USB-C breakout, power supply and switches, plus another pack of
+microphones (and a microSD card for the Pi).
 
-## Electronics
+## Brain
+
+### ESP32-S3
+
+| Part | Qty | Buy | Price | Per speaker |
+|---|:-:|---|--:|--:|
+| ESP32-S3-DevKitC-1-N8R8: 8 MB flash, 8 MB PSRAM, pins soldered on | 1 | [DigiKey](https://www.digikey.com/en/products/detail/espressif-systems/ESP32-S3-DEVKITC-1-N8R8/15295894) | $15.00 | $15.00 |
+
+It runs ESPHome ([esphome/](../esphome)) and sits on a printed cradle; the harness
+plugs onto its pins. It needs the 8 MB of PSRAM for the wake word, so avoid the
+plain N8 version.
+
+### Raspberry Pi Zero 2 W
 
 | Part | Qty | Buy | Price | Per speaker |
 |---|:-:|---|--:|--:|
 | Raspberry Pi Zero 2 WH (SC0721, header soldered on) | 1 | [DigiKey](https://www.digikey.com/en/products/detail/raspberry-pi/SC0721/24627135) | $18.00 | $18.00 |
 | microSD card: SanDisk Ultra 32 GB A1 (SDSQUA4-032G-GN6MA) | 1 | [Amazon](https://www.amazon.com/dp/B08GY9NYRM) | ≈ $9 | ≈ $9.00 |
+
+It runs the Linux firmware ([firmware/](../firmware)). The Pi is also at
+[PiShop](https://www.pishop.us/product/raspberry-pi-zero-2w-with-headers/) and
+[Adafruit](https://www.adafruit.com/product/6008) ($19.80), but was out of stock at
+most stores on 26 September. The Zero 2 W without the header is $15, but then you
+solder the header yourself.
+
+## Electronics
+
+| Part | Qty | Buy | Price | Per speaker |
+|---|:-:|---|--:|--:|
 | Adafruit MAX98357A I2S amplifier (3006) | 2 | [Adafruit](https://www.adafruit.com/product/3006) | $5.95 each | $11.90 |
 | INMP441 I2S microphone module: AITRIP, pack of 3 | 2 | [Amazon](https://www.amazon.com/dp/B0972XP1YS) | ≈ $14 | ≈ $9.33 |
 | Adafruit USB-C breakout (4090) | 1 | [Adafruit](https://www.adafruit.com/product/4090) | $2.95 | $2.95 |
@@ -46,10 +75,6 @@ plus another pack of microphones.
 | Silicone wire, 26 AWG, 6 colours | ~4 m | [Amazon](https://www.amazon.com/dp/B07G2LRX68) | ≈ $13 | ≈ $1.50 |
 | Silicone wire, 22 AWG, red and black | ~1.5 m | [Amazon](https://www.amazon.com/dp/B07ZFP8KCN) | ≈ $11 | ≈ $0.75 |
 
-- **Pi.** Also at [PiShop](https://www.pishop.us/product/raspberry-pi-zero-2w-with-headers/)
-  and [Adafruit](https://www.adafruit.com/product/6008) ($19.80, out of stock on
-  26 September). The Zero 2 W without the header is $15, but then you solder the
-  header yourself.
 - **Microphones.** The same AITRIP pack of 3 was $14.43 on
   [eBay](https://www.ebay.com/itm/235775726409).
 - **Power supply.** The same supply is [Adafruit 4298](https://www.adafruit.com/product/4298),
@@ -85,8 +110,8 @@ plus another pack of microphones.
 | Polyester fibre fill: Poly-Fil, 12 oz | a handful | [Walmart](https://www.walmart.com/ip/26678911) | $5.37 | $0.22 |
 
 - **Inserts.** They go into 4.0 mm holes, the size in the model (`insert_diameter`).
-- **M2.6 screws** hold the Pi on its standoffs; M2.5 × 6 machine screws work too.
-  The M2 screws hold the two switch boards.
+- **M2.6 screws** hold the Pi, or the ESP32-S3's cradle, on the deck's standoffs;
+  M2.5 × 6 machine screws work too. The M2 screws hold the two switch boards.
 - **Feet.** The recesses underneath are 13.2 mm across, for these 12.7 mm feet.
 - **Foam tape.** The seal gaps in the model are drawn for 1 mm foam; thicker tape
   won't compress enough. [uxcell 1 mm × 10 mm](https://www.amazon.com/dp/B01L6TE0UO)
@@ -104,7 +129,8 @@ plus another pack of microphones.
 |---|:-:|---|--:|--:|
 | PETG, 1.75 mm, 1 kg: Prusament Signal White | ~455 g | [Printed Solid](https://www.printedsolid.com/products/prusament-petg-1-75mm-1kg-signal-white) | $28.79 | $13.10 |
 
-About 450 g for the printed parts and 5 g for the light diffuser. The diffuser has
+About 450 g for the printed parts (10 g more for the ESP32-S3's cradle) and 5 g
+for the light diffuser. The diffuser has
 to be white or natural PETG, so a white spool covers everything. For a dark
 speaker, print the rest in
 [Prusament Jet Black](https://www.printedsolid.com/products/prusament-petg-1-75mm-1kg-jet-black),
@@ -131,15 +157,20 @@ enclosure ([build guide, step 4](ASSEMBLY_GUIDE.md#4-test-on-the-desk)).
 
 ## Where to order
 
+For the ESP32-S3 build, with the desk test parts and shop supplies:
+
 | Store | Parts | First build |
 |---|---|--:|
-| Amazon | microSD card, microphones, OLED, LED strip, perfboard, wire, fasteners, feet, foam tape, shop supplies | ≈ $160.49 |
+| Amazon | Microphones, OLED, LED strip, perfboard, wire, fasteners, feet, foam tape, shop supplies | ≈ $151.49 |
 | Adafruit | Amplifiers, USB-C breakout, jumper wires, breadboard | ≈ $31.70 |
 | Printed Solid | Filament | $28.79 |
-| DigiKey | Pi, switches, resistor, diode | ≈ $19.77 |
+| DigiKey | ESP32-S3, switches, resistor, diode | ≈ $16.77 |
 | PiShop | Power supply | ≈ $8.00 |
 | eBay | Acrylic | ≈ $7.00 |
 | Walmart | Fibre fill | $5.37 |
+
+For the Pi build, DigiKey has the Pi instead ($18.00) and Amazon the microSD card
+as well (≈ $9).
 
 Shipping from seven stores adds up. DigiKey resells most Adafruit products and
 PiShop has the Pi too, so check whether you can combine orders.

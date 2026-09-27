@@ -15,7 +15,7 @@ from pathlib import Path
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 LINK = re.compile(r"\]\((https?://[^)\s]+)\)")
 DATA = re.compile(r'<script type="application/json" id="bom-data">(.*?)</script>', re.DOTALL)
-SUMMARY_ROW = re.compile(r"\| \[[^\]]+\]\(#([a-z-]+)\)[^|]*\|([^|]*)\|([^|]*)\|")
+SUMMARY_ROW = re.compile(r"\| \[[^\]]+\]\(#([a-z0-9-]+)\)[^|]*\|([^|]*)\|([^|]*)\|")
 
 
 def load_page() -> dict:
@@ -91,6 +91,20 @@ def main() -> int:
             errors.append(f"{name}: {per:.2f} per speaker on the page, {want_per} in BOM.md")
         if want_first != first:
             errors.append(f"{name}: {first:.2f} first build on the page, {want_first} in BOM.md")
+
+    # the speaker's totals for each brain, rounded to whole dollars in BOM.md
+    for brain, label in (("esp32", "Speaker with the ESP32-S3"), ("pi", "Speaker with the Pi")):
+        row = re.search(rf"\| \*\*{re.escape(label)}\*\* \|([^|]*)\|([^|]*)\|", md)
+        if row is None:
+            errors.append(f"BOM.md's summary has no '{label}' row")
+            continue
+        members = [
+            it for it in items if not once(it) and groups[it["group"]].get("brain") in (None, brain)
+        ]
+        totals = (sum(per_speaker(it) for it in members), sum(first_build(it) for it in members))
+        for cell, total in zip(row.groups(), totals, strict=True):
+            if money(cell) is None or round(money(cell)) != round(total):
+                errors.append(f"{label}: {total:.2f} on the page, {cell.strip()!r} in BOM.md")
 
     for error in errors:
         print(f"✖ {error}")

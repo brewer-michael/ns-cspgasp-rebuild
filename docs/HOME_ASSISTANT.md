@@ -1,5 +1,46 @@
 # Home Assistant
 
+- **ESP32-S3 brain:** [ESP32-S3 speaker](#esp32-s3-speaker), just below.
+- **Raspberry Pi brain:** [Raspberry Pi speaker](#raspberry-pi-speaker).
+
+The Assist pipeline, which picks the speech and language servers, is the same for
+both: [2. An Assist pipeline on your own network](#2-an-assist-pipeline-on-your-own-network).
+
+## ESP32-S3 speaker
+
+The ESP32-S3 build is an ESPHome device, so Home Assistant sets it up like any
+other.
+
+1. Flash it: [esphome/README.md](../esphome/README.md#install).
+2. Home Assistant discovers it. Add it under **Settings → Devices & services**,
+   with the API encryption key from its YAML.
+3. Create an Assist pipeline ([below](#2-an-assist-pipeline-on-your-own-network))
+   and choose it on the speaker's device page.
+4. For the temperature on the clock, set `temperature_entity` in its YAML
+   ([settings](../esphome/README.md#settings)).
+5. Expose the entities you want to control under **Settings → Voice assistants →
+   Expose**.
+
+Its media player takes announcements like any other:
+
+```yaml
+action: tts.speak
+target:
+  entity_id: tts.piper
+data:
+  media_player_entity_id: media_player.open_speaker   # your speaker's media player
+  message: "The washing machine is done."
+```
+
+The alarm clock is on the device page (**Alarm**, **Alarm time**, **Alarm days**).
+An automation can set it, or ring the speaker with the
+`esphome.open_speaker_ring_alarm` action (named after the speaker's `name`).
+Timers set by voice ring on the speaker.
+
+The rest of this page is about the Raspberry Pi build.
+
+## Raspberry Pi speaker
+
 Open Speaker works with Home Assistant in two ways. Pick one with `pipeline.mode`
 in `/etc/open-speaker/config.yaml`.
 
