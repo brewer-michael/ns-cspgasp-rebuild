@@ -27,8 +27,8 @@ done
 command -v openscad >/dev/null || { echo "openscad not found" >&2; exit 1; }
 mkdir -p "$out"
 
-# grille and clamp_ring: print two of each
-parts=(body deck top_plate back_panel grille clamp_ring caps diffuser port_plug window)
+# grille and clamp_ring: print two of each; esp32_cradle only for the ESP32-S3 brain
+parts=(body deck top_plate back_panel grille clamp_ring caps diffuser port_plug window esp32_cradle)
 log="$(mktemp)"
 trap 'rm -f "$log"' EXIT
 for part in "${parts[@]}"; do

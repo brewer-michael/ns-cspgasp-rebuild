@@ -14,7 +14,7 @@ A 100 × 100 × 160 mm tower, close to the footprint of the NS-CSPGASP it replac
   three buttons and two microphones and no visible fasteners.
 - **Back panel**: the only screwed-on part. It carries the port, USB-C power and the
   microphone mute button, and it locks the top plate in place. Take it off to reach
-  the Pi and its microSD card.
+  the brain: its USB port on the ESP32-S3, its microSD card on the Pi.
 
 Everything is in [`main_body.scad`](main_body.scad) (OpenSCAD 2021.01 or newer). It
 is parametric: the dimensions of your drivers, the display type and the bass
@@ -46,7 +46,8 @@ Other settings you might change:
 
 | Parameter | Default | Options |
 |---|---|---|
-| `display_type` | `oled_1_3` | `oled_2_42` (larger window, SSD1309) or `tm1637` (4-digit 7-segment) |
+| `brain` | `esp32_s3` | `pi_zero_2w`. The deck is the same for both; the ESP32-S3 adds the printed `esp32_cradle`. |
+| `display_type` | `oled_1_3` | `oled_2_42` (larger window, SSD1309) or `tm1637` (4-digit 7-segment, Pi only) |
 | `bass_mode` | `port` | `passive_radiator` (set `radiator_*` to your radiator) or `sealed` |
 | `port_tuning_hz` | 120 | The port length is calculated from the chamber volume |
 | `grille_pattern` | `hex` | `rings` |
@@ -78,7 +79,8 @@ are 45 degrees or less, and horizontal holes have pointed or bridged tops.
 |---|:-:|---|---|
 | `body` | 1 | Upright, bottom on the bed | ~300 g, needs 160 mm of Z height. Enable bridging: the tops of the display opening and light slot are bridges. |
 | `back_panel` | 1 | Outside face down | Port tube, USB-C shelf and mute button bosses point up |
-| `deck` | 1 | As exported | Chamber lid; carries the Pi, the amplifiers and the LED strip |
+| `deck` | 1 | As exported | Chamber lid; carries the brain, the amplifiers and the LED strip |
+| `esp32_cradle` | ESP32-S3 only | As exported | Holds the ESP32-S3-DevKitC-1 on the deck's standoffs |
 | `top_plate` | 1 | Upside down (exported that way) | The bed texture becomes the top surface |
 | `grille` | 2 | Outside face down | Crush ribs on the rim make it a press fit |
 | `clamp_ring` | 2 | Countersinks up | Not needed with `speaker_mount = "holes"` |
@@ -99,7 +101,7 @@ Links and prices are in the [bill of materials](../../docs/BOM.md).
 | M3 × 8 countersunk hex socket (ISO 10642) | 6 | Back panel |
 | M3 × 8 countersunk | 8 | Clamp rings. They cut their own thread in the side walls. |
 | M3 × 10 countersunk | 4 | Deck to the side blocks (self-tapping) |
-| M2.6 × 6 self-tapping pan head, or M2.5 × 6 | 4 | Pi Zero 2 W to the deck standoffs |
+| M2.6 × 6 self-tapping pan head, or M2.5 × 6 | 4 | The Pi, or the ESP32-S3's cradle, to the deck standoffs |
 | M2 × 6 self-tapping | 4 | Switch boards (top plate and back panel) |
 | Omron B3F-1000 tactile switches, 6 × 6 mm | 4 | Through-hole, 4.3 mm from the board to the top of the plunger (`switch_height`) |
 | Perfboard, 2.54 mm pitch | 50 × 12 mm and 24 × 14 mm | The three top switches sit 7 holes apart |
@@ -121,7 +123,13 @@ the paths the deck and the display take on their way in.
 
 1. **Inserts.** Press the six M3 inserts into the pillars beside the back opening
    (soldering iron at about 220 °C).
-2. **Deck.** Screw the Pi to the standoffs with the microSD slot facing the back.
+2. **Deck.** Screw the brain to the standoffs:
+   - **ESP32-S3:** screw the `esp32_cradle` down (the screw heads sit below its
+     surface). Set the DevKitC on its rib, pins down and USB ports towards the
+     back, and hold it with a dab of hot glue at each end; it peels off again.
+     The harness plugs onto its pins from below.
+   - **Pi:** microSD slot towards the back.
+
    Fix the amplifiers in their cradles with a dab of hot glue and stick the 3-LED
    strip to the fin, LEDs facing forward. Thread two pairs of speaker wire (~15 cm)
    down through the wire hole. Run foam tape along the top of the chamber ledge.
@@ -141,7 +149,7 @@ the paths the deck and the display take on their way in.
 6. **Top plate.** Drop the caps into their holes. Screw the switch strip onto the
    two bosses (2 × M2 × 6). Glue the INMP441 boards into their pockets with the
    sound hole over the port; a small foam ring around the port seals it. Wire
-   everything to the Pi. Slide the plate's front tongue into the groove behind the
+   everything to the brain. Slide the plate's front tongue into the groove behind the
    front wall, then lower the back of the plate.
 7. **Back panel.** Glue the USB-C breakout onto its shelf, receptacle against the
    panel. Screw on the mute switch board with its cap. Run foam tape along the
@@ -171,5 +179,5 @@ complete build, from the teardown to software, is in
 - **No visible fasteners on the front, sides or top.** Screws hide under the
   grilles, and the top plate is held by tongues. The six countersunk screws are all
   on the back.
-- **Heat.** The Pi Zero 2 W sits on the deck under the vents in the back panel. The
-  vents open into the head, which is sealed off from the chamber.
+- **Heat.** The brain sits on the deck under the vents in the back panel. The vents
+  open into the head, which is sealed off from the chamber.

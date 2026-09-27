@@ -92,8 +92,10 @@ mic_port_diameter = 1.6;
 mic_spacing = 68;
 
 /* [Electronics] */
+brain = "esp32_s3";             // esp32_s3 | pi_zero_2w
 pi_origin = [18.5, 26];         // Pi Zero 2 W corner (x, y) on the deck; microSD end faces the back
 standoff_height = 5;
+esp32_cradle_height = 25;       // ESP32-S3: room under the board for the harness plugs
 amp_board = [19.4, 17.8];       // Adafruit 3006 MAX98357A
 usbc_board = [14.2, 20.4, 1.6]; // Adafruit 4090: across, along the plug, PCB thickness
 usbc_x = 68;
@@ -193,6 +195,7 @@ if (bass_mode == "port")
 
 assert(speaker_center_z - speaker_frame_diameter/2 > w + 2, "drivers hit the floor");
 assert(speaker_center_z + speaker_frame_diameter/2 < deck_z - 2, "drivers hit the deck");
+assert(brain == "esp32_s3" || brain == "pi_zero_2w", "brain must be esp32_s3 or pi_zero_2w");
 assert(speaker_center_y - grille_d/2 - fit > r + 1 && speaker_center_y + grille_d/2 + fit < D - r - 1,
        "grilles are wider than the flat part of the sides");
 assert(speaker_center_z + grille_d/2 + fit < waist_z - 2, "grilles reach the waist groove");
@@ -508,6 +511,33 @@ module deck() {
     }
 }
 
+// The ESP32-S3 brain: an ESP32-S3-DevKitC-1 on a printed cradle that screws onto the
+// Pi's standoffs, so both brains use the same deck. The board sits pins down on the
+// cradle's rib and the harness plugs onto its pins from below; it lifts out for
+// flashing over USB.
+devkit = [25.4, 62.74, 1.6];            // ESP32-S3-DevKitC-1
+devkit_rows = 22.86;                    // between its two rows of pins
+cradle_base = 3;
+cradle_rib = [17, 60, esp32_cradle_height];
+
+module esp32_cradle() {
+    // z = 0 on the standoff tops; x and y from pi_origin
+    difference() {
+        union() {
+            cube([30, 65, cradle_base]);
+            translate([15 - cradle_rib[0]/2, (65 - cradle_rib[1])/2, 0]) cube(cradle_rib);
+        }
+        // hollow rib, open underneath and bridged at the top
+        translate([15 - cradle_rib[0]/2 + 1.6, (65 - cradle_rib[1])/2 + 1.6, -1])
+            cube([cradle_rib[0] - 3.2, cradle_rib[1] - 3.2, cradle_rib[2] - 1.6 + 1]);
+        // M2.6 screws into the standoffs, heads below the surface
+        for (p = pi_holes()) translate(p - pi_origin) {
+            translate([0, 0, -1]) cylinder(d = 2.9, h = cradle_base + 2, $fn = 24);
+            translate([0, 0, 0.8]) cylinder(d = 5.4, h = cradle_base, $fn = 32);
+        }
+    }
+}
+
 module amp_cradle() {
     difference() {
         translate([-1.2 - fit, -1.2 - fit, 0]) cube([amp_board[0] + 2.4 + 2*fit, amp_board[1] + 2.4 + 2*fit, deck_thickness + 2]);
@@ -750,12 +780,17 @@ module ghost_cone() {
     rotate([0, 90, 0]) translate([0, 0, 0.5]) cylinder(d1 = speaker_cone_diameter - 2, d2 = 18, h = 5);
 }
 
-module ghost_pi() {
-    translate([pi_origin[0], pi_origin[1], deck_top + standoff_height]) {
-        color("#1f7a3a") cube([30, 65, 1.4]);
-        color("#222") translate([30 - 3.5 - 2.5 - 2.54, 7, 1.4]) cube([5.08, 50.8, 8.5]);    // GPIO header
-        color("silver") translate([10, 65 - 11.5, 1.4]) cube([12, 11.5 + 2.5, 1.4]);     // microSD
-        color("#555") translate([12, 22, 1.4]) cube([8, 8, 1.2]);                         // SoC
+// the DevKitC on its cradle (cradle coordinates), USB end towards the back
+module ghost_esp32() {
+    y0 = (65 - devkit[1]) / 2;
+    z0 = esp32_cradle_height;
+    color("#1f1f1f") translate([15 - devkit[0]/2, y0, z0]) cube(devkit);
+    color("silver") translate([15 - 25.5/2, y0, z0 + devkit[2]]) cube([25.5, 18, 3.2]);       // module
+    for (dx = [-5.5, 5.5]) color("silver")
+        translate([15 + dx - 4.5, y0 + devkit[1] - 7.5, z0 + devkit[2]]) cube([9, 8.2, 3.3]);  // USB-C
+    for (s = [-1, 1]) translate([15 + s * devkit_rows/2 - 1.27, 32.5 - 55.88/2, 0]) {
+        color("#222") translate([0, 0, z0 - 2.5]) cube([2.54, 55.88, 2.5]);                    // pin header
+        color("#777") translate([0, 0, z0 - 2.5 - 14]) cube([2.54, 55.88, 14]);                // harness plugs
     }
 }
 
@@ -764,9 +799,14 @@ module ghost_deck_parts() {
     color("#3b5bb5") for (a = amp_origins())
         translate([a[0], a[1], deck_thickness]) cube([amp_board[0], amp_board[1], 1.6]);
     translate([pi_origin[0], pi_origin[1], deck_thickness + standoff_height]) {
-        color("#1f7a3a") cube([30, 65, 1.4]);
-        color("#222") translate([30 - 3.5 - 2.5 - 2.54, 7, 1.4]) cube([5.08, 50.8, 8.5]);   // GPIO header
-        color("silver") translate([10, 65 - 11.5, 1.4]) cube([12, 11.5 + 2.5, 1.4]);    // microSD
+        if (brain == "esp32_s3") {
+            color(palette[1]) esp32_cradle();
+            ghost_esp32();
+        } else {
+            color("#1f7a3a") cube([30, 65, 1.4]);
+            color("#222") translate([30 - 3.5 - 2.5 - 2.54, 7, 1.4]) cube([5.08, 50.8, 8.5]);   // GPIO header
+            color("silver") translate([10, 65 - 11.5, 1.4]) cube([12, 11.5 + 2.5, 1.4]);    // microSD
+        }
     }
     // status LED strip on the fin, LEDs facing the slot
     translate([W/2 - 25, led_fin_y - 0.3, deck_thickness]) {
@@ -891,6 +931,7 @@ module print_layout() {
     color(palette[3]) translate([0, -30, 0]) caps();
     color("#bfe6ff") translate([100, -30, (light_height - 0.3)/2]) diffuser();
     color("#101010") translate([150, -30, 0]) window_insert();
+    if (brain == "esp32_s3") color(palette[1]) translate([200, -80, 0]) esp32_cradle();
 }
 
 if (part == "assembly") assembly();
@@ -900,6 +941,7 @@ else if (part == "section_front") difference() { assembly(); translate([-50, -50
 else if (part == "print_layout") print_layout();
 else if (part == "body") body();
 else if (part == "deck") deck();
+else if (part == "esp32_cradle") esp32_cradle();
 else if (part == "top_plate") rotate([180, 0, 0]) translate([0, 0, -tt]) top_plate();
 else if (part == "back_panel") rotate([-90, 0, 0]) translate([0, -D, 0]) back_panel();
 else if (part == "grille") grille();
