@@ -1,0 +1,837 @@
+# Open Speaker: the ESP32-S3 brain.
+#
+# The same speaker as the Raspberry Pi build: two MAX98357A amplifiers, two INMP441
+# microphones, a 1.3" SH1106 OLED clock, three WS2812B status LEDs and four buttons.
+# The wake word runs on the ESP32-S3; Home Assistant's Assist pipeline does the
+# rest. Wiring: hardware/schematics/gpio_pinout.md. Setup: esphome/README.md.
+#
+# Flash this file as it is, or use it as a package from your own configuration and
+# change the substitutions below there.
+
+substitutions:
+  name: open-speaker
+  friendly_name: Open Speaker
+  # okay_nabu, hey_jarvis, hey_mycroft or alexa
+  wake_word: okay_nabu
+  # The temperature on the clock. For a weather entity keep the attribute; for a
+  # sensor entity set temperature_attribute to "".
+  temperature_entity: weather.forecast_home
+  temperature_attribute: temperature
+  temperature_unit: "°"
+  clock_24h: "false"
+  # The display and the status light dim between these hours
+  night_start_hour: "22"
+  night_end_hour: "7"
+  # Microphone gain for the wake word and voice commands, 1-64
+  mic_gain: "4"
+  # Pins on the ESP32-S3-DevKitC-1, all on its J1 header
+  amp_lrclk_pin: GPIO4
+  amp_bclk_pin: GPIO5
+  amp_dout_pin: GPIO6
+  led_pin: GPIO7
+  i2c_sda_pin: GPIO8
+  i2c_scl_pin: GPIO9
+  volume_up_pin: GPIO11
+  volume_down_pin: GPIO12
+  action_pin: GPIO13
+  mute_pin: GPIO14
+  mic_lrclk_pin: GPIO15
+  mic_bclk_pin: GPIO16
+  mic_din_pin: GPIO17
+  font_file: "gfonts://Roboto@700"
+  # The sound files, from this repository so that the file also works as a remote
+  # package. To build from a local copy: esphome -s sounds sounds ...
+  sounds: https://raw.githubusercontent.com/brewer-michael/ns-cspgasp-rebuild/v2/esphome/sounds
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.9.0
+  project:
+    name: brewer-michael.open-speaker
+    version: "2.0.0"
+  on_boot:
+    priority: -100
+    then:
+      - script.execute: update_night
+      - script.execute: update_light
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 8MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      # recommended for micro_wake_word on the S3
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: "y"
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+
+api:
+  id: api_server
+  actions:
+    # For Home Assistant automations: esphome.<device>_ring_alarm
+    - action: ring_alarm
+      then:
+        - script.execute:
+            id: ring
+            kind: 2
+    - action: stop_ringing
+      then:
+        - script.stop: snooze
+        - script.execute: stop_ringing
+
+ota:
+  - platform: esphome
+
+wifi:
+  # Without Wi-Fi details the speaker opens a hotspot to set them; Improv over
+  # USB works too (web.esphome.io)
+  ap: {}
+
+captive_portal:
+
+improv_serial:
+
+dashboard_import:
+  package_import_url: github://brewer-michael/ns-cspgasp-rebuild/esphome/open-speaker.yaml@v2
+
+i2c:
+  sda: ${i2c_sda_pin}
+  scl: ${i2c_scl_pin}
+  frequency: 400kHz
+
+globals:
+  # 0 idle, 1 listening, 2 thinking, 3 speaking, 4 error
+  - id: assistant_phase
+    type: int
+    initial_value: "0"
+  # 0 nothing, 1 a timer, 2 the alarm
+  - id: ringing
+    type: int
+    initial_value: "0"
+  - id: ring_started
+    type: uint32_t
+    initial_value: "0"
+  # a value that replaces the temperature for a moment (volume, mic on/off)
+  - id: swap_text
+    type: std::string
+    initial_value: '""'
+  - id: swap_until
+    type: uint32_t
+    initial_value: "0"
+  - id: night
+    type: bool
+    initial_value: "false"
+
+time:
+  - platform: homeassistant
+    id: ha_time
+    on_time_sync:
+      then:
+        - script.execute: update_night
+    on_time:
+      - seconds: 0
+        then:
+          - script.execute: update_night
+
+sensor:
+  - platform: homeassistant
+    id: outdoor_temperature
+    entity_id: ${temperature_entity}
+    attribute: ${temperature_attribute}
+    internal: true
+
+# ---------------------------------------------------------------------------
+# Audio: microphones on one I2S bus, amplifiers on the other
+
+i2s_audio:
+  - id: i2s_mics
+    i2s_lrclk_pin: ${mic_lrclk_pin}
+    i2s_bclk_pin: ${mic_bclk_pin}
+  - id: i2s_amps
+    i2s_lrclk_pin: ${amp_lrclk_pin}
+    i2s_bclk_pin: ${amp_bclk_pin}
+
+microphone:
+  # The left microphone (L/R to GND). The right one is used by the Pi build.
+  - platform: i2s_audio
+    id: mics
+    i2s_audio_id: i2s_mics
+    adc_type: external
+    i2s_din_pin: ${mic_din_pin}
+    pdm: false
+    sample_rate: 16000
+    bits_per_sample: 32bit
+    channel: left
+
+speaker:
+  # Both amplifiers; each picks its channel with its SD pin
+  - platform: i2s_audio
+    id: amps
+    i2s_audio_id: i2s_amps
+    dac_type: external
+    i2s_dout_pin: ${amp_dout_pin}
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    channel: stereo
+    buffer_duration: 100ms
+    timeout: never
+  # Announcements (answers, sounds) are mixed over music, which ducks under them
+  - platform: mixer
+    id: mixer_out
+    output_speaker: amps
+    num_channels: 2
+    source_speakers:
+      - id: announcement_input
+        timeout: never
+      - id: media_input
+        timeout: never
+  - platform: resampler
+    id: announcement_resampler
+    output_speaker: announcement_input
+  - platform: resampler
+    id: media_resampler
+    output_speaker: media_input
+
+media_player:
+  - platform: speaker
+    id: speaker_player
+    name: None
+    announcement_pipeline:
+      speaker: announcement_resampler
+      format: FLAC
+      num_channels: 1
+      sample_rate: 48000
+    media_pipeline:
+      speaker: media_resampler
+      format: FLAC
+      num_channels: 2
+      sample_rate: 48000
+    volume_initial: 0.4
+    volume_increment: 0.05
+    # the same sounds as the Pi build (scripts/make_esphome_sounds.py writes them)
+    files:
+      - id: sound_wake
+        file: ${sounds}/wake.wav
+      - id: sound_done
+        file: ${sounds}/done.wav
+      - id: sound_error
+        file: ${sounds}/error.wav
+      - id: sound_volume
+        file: ${sounds}/volume.wav
+      - id: sound_timer
+        file: ${sounds}/timer.wav
+      - id: sound_alarm
+        file: ${sounds}/alarm.wav
+    on_announcement:
+      - mixer_speaker.apply_ducking:
+          id: media_input
+          decibel_reduction: 20
+          duration: 0.2s
+    on_state:
+      - if:
+          condition:
+            not:
+              media_player.is_announcing: speaker_player
+          then:
+            - mixer_speaker.apply_ducking:
+                id: media_input
+                decibel_reduction: 0
+                duration: 0.5s
+    on_volume:
+      - script.execute:
+          id: show_swap
+          text: !lambda 'return "Vol " + to_string((int) roundf(id(speaker_player).volume * 100));'
+
+# ---------------------------------------------------------------------------
+# Voice
+
+micro_wake_word:
+  id: mww
+  microphone:
+    microphone: mics
+    gain_factor: ${mic_gain}
+  models:
+    - model: ${wake_word}
+  vad:
+  on_wake_word_detected:
+    - if:
+        condition:
+          not:
+            voice_assistant.is_running:
+        then:
+          - micro_wake_word.stop:
+          - script.execute:
+              id: start_listening
+              wake_word: !lambda return wake_word;
+
+voice_assistant:
+  id: va
+  microphone:
+    microphone: mics
+    gain_factor: ${mic_gain}
+  media_player: speaker_player
+  micro_wake_word: mww
+  noise_suppression_level: 2
+  auto_gain: 31dBFS
+  volume_multiplier: 2.0
+  on_client_connected:
+    - script.execute: start_wake_word
+    - script.execute: update_light
+    - component.update: oled
+  on_client_disconnected:
+    - micro_wake_word.stop:
+    - voice_assistant.stop:
+    - script.execute: update_light
+    - component.update: oled
+  on_listening:
+    - lambda: id(assistant_phase) = 1;
+    - script.execute: update_light
+  on_stt_vad_end:
+    - lambda: id(assistant_phase) = 2;
+    - script.execute: update_light
+  on_tts_start:
+    - lambda: id(assistant_phase) = 3;
+    - script.execute: update_light
+  on_end:
+    - wait_until:
+        condition:
+          not:
+            media_player.is_announcing: speaker_player
+        timeout: 30s
+    # the pipeline can report its end before it is idle again
+    - wait_until:
+        condition:
+          not:
+            voice_assistant.is_running:
+        timeout: 5s
+    - lambda: if (id(assistant_phase) != 4) id(assistant_phase) = 0;
+    - script.execute: update_light
+    - script.execute: start_wake_word
+  on_error:
+    - lambda: id(assistant_phase) = 4;
+    - script.execute: update_light
+    - media_player.speaker.play_on_device_media_file:
+        media_file: sound_error
+        announcement: true
+    - delay: 2s
+    - lambda: id(assistant_phase) = 0;
+    - script.execute: update_light
+    - script.execute: start_wake_word
+  on_timer_finished:
+    - script.execute:
+        id: ring
+        kind: 1
+
+# ---------------------------------------------------------------------------
+# The clock face: the time always; the temperature, or for a moment the volume,
+# "mic off", a timer's countdown or "net" when Home Assistant can't be reached.
+
+font:
+  - file: ${font_file}
+    id: font_clock
+    size: 36
+    glyphs: "0123456789:-"
+  - file: ${font_file}
+    id: font_value
+    size: 18
+    glyphs: " 0123456789:.-°CEFVcdefilmnoptu"
+  - file: ${font_file}
+    id: font_small
+    size: 11
+    glyphs: "ALMP"
+
+display:
+  - platform: ssd1306_i2c
+    id: oled
+    model: "SH1106 128x64"
+    address: 0x3C
+    contrast: 70%
+    update_interval: 1s
+    lambda: |-
+      auto now = id(ha_time).now();
+      // burn-in protection: move everything by a pixel every three minutes
+      static const int SHIFTS[9][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}, {-1, 1},
+                                       {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
+      int dx = 0, dy = 0;
+      if (now.is_valid()) {
+        int step = ((now.hour * 60 + now.minute) / 3) % 9;
+        dx = SHIFTS[step][0];
+        dy = SHIFTS[step][1];
+      }
+      bool blink = (millis() / 1000) % 2 == 0;
+      int right = it.get_width() - 2 + dx;
+
+      // the time; it blinks while the alarm rings
+      if (!now.is_valid()) {
+        it.print(right, 3 + dy, id(font_clock), TextAlign::TOP_RIGHT, "--:--");
+      } else if (id(ringing) != 2 || blink) {
+        if (${clock_24h}) {
+          it.printf(right, 3 + dy, id(font_clock), TextAlign::TOP_RIGHT, "%02d:%02d", now.hour, now.minute);
+        } else {
+          int hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
+          it.printf(right, 3 + dy, id(font_clock), TextAlign::TOP_RIGHT, "%d:%02d", hour, now.minute);
+          it.print(1 + dx, 20 + dy, id(font_small), now.hour < 12 ? "AM" : "PM");
+        }
+        if (id(alarm_on).state)
+          it.print(1 + dx, 4 + dy, id(font_small), "AL");
+      }
+
+      // the temperature slot
+      std::string value;
+      bool blink_value = false;
+      if ((int32_t) (id(swap_until) - millis()) > 0) {
+        value = id(swap_text);
+      } else if (id(ringing) == 1) {
+        value = "End";
+        blink_value = true;
+      } else {
+        uint32_t left = UINT32_MAX;
+        for (const auto &timer : id(va).get_timers()) {
+          if (timer.is_active && timer.seconds_left < left)
+            left = timer.seconds_left;
+        }
+        char buffer[16];
+        if (left != UINT32_MAX) {
+          uint32_t hours = left / 3600, minutes = left % 3600 / 60, seconds = left % 60;
+          if (hours > 0)
+            snprintf(buffer, sizeof(buffer), "%u:%02u:%02u", (unsigned) hours, (unsigned) minutes, (unsigned) seconds);
+          else
+            snprintf(buffer, sizeof(buffer), "%u:%02u", (unsigned) minutes, (unsigned) seconds);
+          value = buffer;
+        } else if (!id(api_server).is_connected()) {
+          value = "net";
+        } else if (id(outdoor_temperature).has_state() && !std::isnan(id(outdoor_temperature).state)) {
+          snprintf(buffer, sizeof(buffer), "%.0f%s", id(outdoor_temperature).state, "${temperature_unit}");
+          value = buffer;
+        }
+      }
+      if (!value.empty() && (!blink_value || blink))
+        it.print(right, 43 + dy, id(font_value), TextAlign::TOP_RIGHT, value.c_str());
+
+# ---------------------------------------------------------------------------
+# Status light: dim blue ready, green listening, pulsing cyan thinking, pulsing
+# blue speaking, pulsing orange ringing, dim red microphone muted, red error
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: status_light
+    pin: ${led_pin}
+    num_leds: 3
+    channel_colors: GRB
+    chipset: WS2812
+    internal: true
+    default_transition_length: 0s
+    effects:
+      - pulse:
+          name: Pulse
+          transition_length: 0.8s
+          update_interval: 0.8s
+          min_brightness: 10%
+          max_brightness: 100%
+
+# ---------------------------------------------------------------------------
+# Buttons: each pulls its pin to ground
+
+binary_sensor:
+  - platform: gpio
+    id: volume_up_button
+    internal: true
+    pin:
+      number: ${volume_up_pin}
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - script.execute:
+          id: change_volume
+          step: 1
+      - delay: 500ms
+      - while:
+          condition:
+            binary_sensor.is_on: volume_up_button
+          then:
+            - script.execute:
+                id: change_volume
+                step: 1
+            - delay: 150ms
+  - platform: gpio
+    id: volume_down_button
+    internal: true
+    pin:
+      number: ${volume_down_pin}
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - script.execute:
+          id: change_volume
+          step: -1
+      - delay: 500ms
+      - while:
+          condition:
+            binary_sensor.is_on: volume_down_button
+          then:
+            - script.execute:
+                id: change_volume
+                step: -1
+            - delay: 150ms
+  # Tap: talk, or stop whatever is happening; snoozes a ringing alarm.
+  # Hold: stop a ringing alarm or timer for good.
+  - platform: gpio
+    id: action_button
+    internal: true
+    pin:
+      number: ${action_pin}
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on_off: 20ms
+    on_click:
+      min_length: 20ms
+      max_length: 800ms
+      then:
+        - script.execute: action_tap
+    on_multi_click:
+      - timing:
+          - ON for at least 1s
+        then:
+          - script.stop: snooze
+          - script.execute: stop_ringing
+  - platform: gpio
+    id: mute_button
+    internal: true
+    pin:
+      number: ${mute_pin}
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - switch.toggle: mic_mute
+
+# ---------------------------------------------------------------------------
+# Settings in Home Assistant, and the alarm clock. The alarm rings from the
+# speaker's own clock, so it works even while Home Assistant is down.
+
+switch:
+  - platform: template
+    id: mic_mute
+    name: Mute microphone
+    icon: mdi:microphone-off
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - micro_wake_word.stop:
+      - voice_assistant.stop:
+      - script.execute:
+          id: show_swap
+          text: "mic off"
+      - media_player.speaker.play_on_device_media_file:
+          media_file: sound_error
+          announcement: true
+      - script.execute: update_light
+    on_turn_off:
+      - script.execute: start_wake_word
+      - script.execute:
+          id: show_swap
+          text: "mic on"
+      - media_player.speaker.play_on_device_media_file:
+          media_file: sound_done
+          announcement: true
+      - script.execute: update_light
+  - platform: template
+    id: wake_sound
+    name: Wake sound
+    icon: mdi:bullhorn
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  - platform: template
+    id: alarm_on
+    name: Alarm
+    icon: mdi:alarm
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - component.update: oled
+    on_turn_off:
+      - script.stop: snooze
+      - component.update: oled
+
+datetime:
+  - platform: template
+    id: alarm_time
+    name: Alarm time
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: "07:00:00"
+    time_id: ha_time
+    on_time:
+      then:
+        - if:
+            condition:
+              lambda: |-
+                if (!id(alarm_on).state)
+                  return false;
+                auto index = id(alarm_days).active_index();
+                int day = id(ha_time).now().day_of_week;  // 1 Sunday ... 7 Saturday
+                bool weekend = day == 1 || day == 7;
+                if (index.has_value() && *index == 1)
+                  return !weekend;
+                if (index.has_value() && *index == 2)
+                  return weekend;
+                return true;
+            then:
+              - script.execute:
+                  id: ring
+                  kind: 2
+
+select:
+  - platform: template
+    id: alarm_days
+    name: Alarm days
+    icon: mdi:calendar-week
+    options:
+      - Every day
+      - Weekdays
+      - Weekends
+    initial_option: Every day
+    optimistic: true
+    restore_value: true
+
+button:
+  - platform: template
+    name: Stop ringing
+    icon: mdi:alarm-off
+    on_press:
+      - script.stop: snooze
+      - script.execute: stop_ringing
+
+# ---------------------------------------------------------------------------
+
+script:
+  - id: start_wake_word
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_off: mic_mute
+              - voice_assistant.connected:
+              - not:
+                  micro_wake_word.is_running:
+          then:
+            - micro_wake_word.start:
+
+  # the wake chime, then listen; wake_word is empty when the button started it
+  - id: start_listening
+    parameters:
+      wake_word: string
+    then:
+      - if:
+          condition:
+            switch.is_on: wake_sound
+          then:
+            - media_player.speaker.play_on_device_media_file:
+                media_file: sound_wake
+                announcement: true
+            - delay: 50ms
+            - wait_until:
+                condition:
+                  not:
+                    media_player.is_announcing: speaker_player
+                timeout: 1s
+      - voice_assistant.start:
+          wake_word: !lambda return wake_word;
+
+  - id: action_tap
+    then:
+      - if:
+          condition:
+            lambda: return id(ringing) != 0;
+          then:
+            # a tap snoozes the alarm for nine minutes and stops a timer
+            - if:
+                condition:
+                  lambda: return id(ringing) == 2;
+                then:
+                  - script.execute: stop_ringing
+                  - script.execute: snooze
+                else:
+                  - script.execute: stop_ringing
+          else:
+            - if:
+                condition:
+                  voice_assistant.is_running:
+                then:
+                  - voice_assistant.stop:
+                else:
+                  - if:
+                      condition:
+                        or:
+                          - media_player.is_announcing: speaker_player
+                          - media_player.is_playing: speaker_player
+                      then:
+                        - media_player.stop:
+                            id: speaker_player
+                            announcement: true
+                        - media_player.stop: speaker_player
+                      else:
+                        - if:
+                            condition:
+                              and:
+                                - switch.is_off: mic_mute
+                                - voice_assistant.connected:
+                            then:
+                              - micro_wake_word.stop:
+                              - script.execute:
+                                  id: start_listening
+                                  wake_word: ""
+                            else:
+                              - media_player.speaker.play_on_device_media_file:
+                                  media_file: sound_error
+                                  announcement: true
+
+  - id: change_volume
+    mode: queued
+    max_runs: 3
+    parameters:
+      step: int
+    then:
+      - if:
+          condition:
+            lambda: return step > 0;
+          then:
+            - media_player.volume_up: speaker_player
+          else:
+            - media_player.volume_down: speaker_player
+      - if:
+          condition:
+            not:
+              or:
+                - media_player.is_playing: speaker_player
+                - media_player.is_announcing: speaker_player
+          then:
+            - media_player.speaker.play_on_device_media_file:
+                media_file: sound_volume
+                announcement: true
+
+  - id: show_swap
+    mode: restart
+    parameters:
+      text: string
+    then:
+      - lambda: |-
+          id(swap_text) = text;
+          id(swap_until) = millis() + 2500;
+      - component.update: oled
+
+  # kind: 1 a timer, 2 the alarm. Rings for up to ten minutes.
+  - id: ring
+    mode: restart
+    parameters:
+      kind: int
+    then:
+      - lambda: |-
+          id(ringing) = kind;
+          id(ring_started) = millis();
+      - script.execute: update_light
+      - component.update: oled
+      - while:
+          condition:
+            lambda: return id(ringing) != 0 && millis() - id(ring_started) < 10 * 60 * 1000;
+          then:
+            - if:
+                condition:
+                  lambda: return id(ringing) == 2;
+                then:
+                  - media_player.speaker.play_on_device_media_file:
+                      media_file: sound_alarm
+                      announcement: true
+                else:
+                  - media_player.speaker.play_on_device_media_file:
+                      media_file: sound_timer
+                      announcement: true
+            - delay: 100ms
+            - wait_until:
+                condition:
+                  not:
+                    media_player.is_announcing: speaker_player
+                timeout: 10s
+      - lambda: id(ringing) = 0;
+      - script.execute: update_light
+      - component.update: oled
+
+  - id: stop_ringing
+    then:
+      - lambda: id(ringing) = 0;
+      - script.stop: ring
+      - media_player.stop:
+          id: speaker_player
+          announcement: true
+      - script.execute: update_light
+      - component.update: oled
+
+  - id: snooze
+    mode: restart
+    then:
+      - delay: 9min
+      - script.execute:
+          id: ring
+          kind: 2
+
+  - id: update_night
+    then:
+      - lambda: |-
+          auto now = id(ha_time).now();
+          if (!now.is_valid())
+            return;
+          const int start = ${night_start_hour}, end = ${night_end_hour};
+          bool night = start == end ? false
+                     : start < end ? (now.hour >= start && now.hour < end)
+                                   : (now.hour >= start || now.hour < end);
+          if (night == id(night))
+            return;
+          id(night) = night;
+          id(oled).set_contrast(night ? 0.03f : 0.7f);
+          id(update_light).execute();
+
+  - id: update_light
+    mode: restart
+    then:
+      - lambda: |-
+          float r = 0, g = 0, b = 0, level = 1.0f;
+          bool pulse = false;
+          if (id(ringing) != 0) {
+            r = 1; g = 0.5f; pulse = true;
+          } else if (id(assistant_phase) == 4) {
+            r = 1;
+          } else if (id(assistant_phase) == 1) {
+            g = 1;
+          } else if (id(assistant_phase) == 2) {
+            g = 1; b = 1; pulse = true;
+          } else if (id(assistant_phase) == 3) {
+            b = 1; pulse = true;
+          } else if (id(mic_mute).state) {
+            r = 1; level = 0.15f;
+          } else {
+            b = 1; level = 0.1f;
+          }
+          float brightness = level * 0.6f * (id(night) ? 0.3f : 1.0f);
+          auto call = id(status_light).turn_on();
+          call.set_rgb(r, g, b);
+          call.set_brightness(std::max(brightness, 0.02f));
+          call.set_transition_length(0);
+          call.set_effect(pulse ? "Pulse" : "None");
+          call.perform();

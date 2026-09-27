@@ -5,3 +5,6 @@ hardware/enclosure/stl/
 build/
 .pytest_cache/
 .ruff_cache/
+
+# ESPHome build output
+esphome/.esphome/
