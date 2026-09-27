@@ -26,6 +26,8 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -q
+      # the ESP32-S3 build plays the same sounds, rendered from this package
+      - run: python ../scripts/make_esphome_sounds.py --check
 
   docs:
     runs-on: ubuntu-latest
@@ -34,6 +36,28 @@ jobs:
       # docs/shopping-list.html must list the same parts, links and prices as docs/BOM.md
       - run: python3 scripts/check_bom.py
 
+  esphome:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: esphome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install esphome==2026.9.0
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            esphome/.esphome
+          key: esphome-2026.9.0-${{ hashFiles('esphome/open-speaker.yaml') }}
+          restore-keys: esphome-2026.9.0-
+      # sounds from this checkout rather than from GitHub
+      - run: esphome -s sounds sounds config open-speaker.yaml
+      - run: esphome -s sounds sounds compile open-speaker.yaml
+
   enclosure:
     runs-on: ubuntu-latest
     steps:
@@ -41,6 +65,11 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y openscad
       # exports every printable part; fails if the model's own checks fail
       - run: hardware/enclosure/export.sh
+      # the Pi brain uses the same parts; its model must pass the same checks
+      - name: Model with the Pi brain
+        run: |
+          openscad -o pi.echo -D 'part="assembly"' -D 'brain="pi_zero_2w"' hardware/enclosure/main_body.scad
+          ! grep -E "ERROR|WARNING" pi.echo
       - uses: actions/upload-artifact@v4
         with:
           name: enclosure-stl
